@@ -53,10 +53,17 @@ contract ERC20Token is ERC20Interface, Owned {
 
 
     // ------------------------------------------------------------------------
-    // Get the account balance of another account with address _owner
+    // Get the KEY balance of another account with address _owner
     // ------------------------------------------------------------------------
     function balanceOf(address _owner) constant returns (uint balance) {
         return balances[_owner];
+    }
+
+    // ------------------------------------------------------------------------
+    // Get the ETH balance of another account with address _owner
+    // ------------------------------------------------------------------------
+    function ethBalanceOf(address _owner) constant returns (uint balance) {
+        return balanceEth[_owner];
     }
 
 
@@ -159,7 +166,7 @@ contract SelfKeyToken is ERC20Token, SelfKeyTokenConfig {
     // ------------------------------------------------------------------------
     // ETH Deposited - holds the amount of ETH deposited by each participant
     // ------------------------------------------------------------------------
-    mapping(address => uint) public balanceEth;
+    mapping(address => uint) balanceEth;
 
     // ------------------------------------------------------------------------
     // Wallet receiving the raised funds
