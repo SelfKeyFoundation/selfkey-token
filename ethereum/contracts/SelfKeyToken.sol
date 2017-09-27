@@ -59,13 +59,6 @@ contract ERC20Token is ERC20Interface, Owned {
         return balances[_owner];
     }
 
-    // ------------------------------------------------------------------------
-    // Get the ETH balance of another account with address _owner
-    // ------------------------------------------------------------------------
-    function ethBalanceOf(address _owner) constant returns (uint balance) {
-        return balanceEth[_owner];
-    }
-
 
     // ------------------------------------------------------------------------
     // Transfer the balance from owner's account to another account
@@ -156,7 +149,7 @@ contract SelfKeyToken is ERC20Token, SelfKeyTokenConfig {
     // ------------------------------------------------------------------------
     uint public tokensPerKEther = 30000000;
     uint public tokensPerKEtherPreSale = 35000000;
-    uint public totalPreSale = 0;   // public?
+    uint totalPreSale = 0;   // public?
 
     // ------------------------------------------------------------------------
     // Locked Tokens - holds the locked tokens information
@@ -189,6 +182,14 @@ contract SelfKeyToken is ERC20Token, SelfKeyTokenConfig {
         wallet = _wallet;
         lockedTokens = new LockedTokens(this);
         require(address(lockedTokens) != 0x0);
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Get the ETH balance of another account with address _owner
+    // ------------------------------------------------------------------------
+    function ethBalanceOf(address _owner) constant returns (uint balance) {
+        return balanceEth[_owner];
     }
 
 
@@ -331,7 +332,9 @@ contract SelfKeyToken is ERC20Token, SelfKeyTokenConfig {
 
         // Can only finalise once
         finalised = true;
+        TokenSaleFinalised();
     }
+    event TokenSaleFinalised();
 
 
     // ------------------------------------------------------------------------
@@ -394,16 +397,17 @@ contract SelfKeyToken is ERC20Token, SelfKeyTokenConfig {
     // If KYC process is rejected, any tokens bought are reversed
     // ------------------------------------------------------------------------
     function kycReject(address participant) onlyOwner {
-        require(balanceEth[participant] > 0);
+        //require(balanceEth[participant] > 0);
 
-        uint ethRefund = balanceEth[participant];
-        uint balance = balances[participant];
+        uint ethBalance = balanceEth[participant];
+        uint keyBalance = balances[participant];
 
-        totalSupply = totalSupply.sub(balance); // ???
+        totalSupply = totalSupply.sub(keyBalance); // ???
         balances[participant] = 0;
         balanceEth[participant] = 0;
+        kycRequired[participant] = true;
 
-        KycRejected(participant, ethRefund, balance);
+        KycRejected(participant, ethBalance, keyBalance);
     }
     event KycRejected(address indexed participant, uint ethers, uint tokens);
 

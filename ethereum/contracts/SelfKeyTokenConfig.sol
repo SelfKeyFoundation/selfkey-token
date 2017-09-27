@@ -13,7 +13,7 @@ contract SelfKeyTokenConfig {
     // ------------------------------------------------------------------------
     string public constant SYMBOL = "KEY";
     string public constant NAME = "SelfKey";
-    uint8 public constant DECIMALS = 12;
+    uint8 public constant DECIMALS = 18;
 
     // ------------------------------------------------------------------------
     // Decimal factor for multiplications from KEY unit to KEY natural unit
