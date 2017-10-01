@@ -3,6 +3,7 @@ pragma solidity ^0.4.15;
 import './SelfKeyToken.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
+import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
 
 /**
  * @title SelfKeyCrowdsale
@@ -13,8 +14,8 @@ contract SelfKeyCrowdsale is Ownable {
 
     SelfKeyToken public token;  // Token contract
 
-    uint256 public startTime;
-    uint256 public endTime;
+    uint64 public startTime;
+    uint64 public endTime;
     uint256 public rate;        // How many token units a buyer gets per wei
     address public wallet;
 
@@ -28,6 +29,10 @@ contract SelfKeyCrowdsale is Ownable {
     // Initial distribution amounts
     uint256 public FOUNDATION_POOL_TOKENS;
     uint256 public LEGAL_EXPENSES_TOKENS;
+    uint256 public TIMELOCK1_TOKENS;
+
+    // Token Timelocks
+    TokenTimelock public timelock1;
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -38,7 +43,7 @@ contract SelfKeyCrowdsale is Ownable {
     /**
      * @dev Crowdsale contract constructor
      */
-    function SelfKeyCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet,
+    function SelfKeyCrowdsale(uint64 _startTime, uint64 _endTime, uint256 _rate, address _wallet,
       address _foundationPool, address _legalExpensesWallet) {
         require(_endTime >= _startTime);
         require(_rate > 0);
@@ -54,7 +59,11 @@ contract SelfKeyCrowdsale is Ownable {
         foundationPool = _foundationPool;
         legalExpensesWallet = _legalExpensesWallet;
 
+        // Creation of timelocks
+        timelock1 = new TokenTimelock(token, foundationPool, uint64(startTime + 31622400));   // 1 year after startTime
+
         FOUNDATION_POOL_TOKENS = 3267000000 * (10 ** uint256(token.DECIMALS()));    // 33%
+        TIMELOCK1_TOKENS = 3267000000 * (10 ** uint256(token.DECIMALS()));    // 33%
         LEGAL_EXPENSES_TOKENS = 99000000 * (10 ** uint256(token.DECIMALS()));       //  1%
 
         distributeInitialFunds();
@@ -153,10 +162,15 @@ contract SelfKeyCrowdsale is Ownable {
 
     function distributeInitialFunds() internal {
         token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
-        // 33% to time-locked funds
+        token.mint(timelock1, TIMELOCK1_TOKENS);
         token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
 
         assert(token.balanceOf(foundationPool) == FOUNDATION_POOL_TOKENS);
+        assert(token.balanceOf(timelock1) == TIMELOCK1_TOKENS);
         assert(token.balanceOf(legalExpensesWallet) == LEGAL_EXPENSES_TOKENS);
+    }
+
+    function releaseLock1() onlyOwner public {
+        timelock1.release();
     }
 }

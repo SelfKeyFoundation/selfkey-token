@@ -44,11 +44,20 @@ contract('SelfKeyCrowdsale', function(accounts) {
   it("should have distributed initial token amounts correctly", function() {
     return crowdsaleContract.FOUNDATION_POOL_TOKENS.call().then(function(expectedFoundationTokens) {
       return crowdsaleContract.LEGAL_EXPENSES_TOKENS.call().then(function(expectedLegalTokens) {
-        return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
-          // Foundation Pool tokens are allocated correctly
-          assert.equal(foundationBalance, Number(expectedFoundationTokens));
-          return tokenContract.balanceOf.call(legalExpensesWallet).then(function(legalBalance) {
-            assert.equal(legalBalance, Number(expectedLegalTokens));
+        return crowdsaleContract.TIMELOCK1_TOKENS.call().then(function(expectedTimelock1Tokens) {
+          return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+            // Foundation Pool tokens are allocated correctly
+            assert.equal(foundationBalance, Number(expectedFoundationTokens));
+            return tokenContract.balanceOf.call(legalExpensesWallet).then(function(legalBalance) {
+              // Legal expenses wallet tokens are allocated correctly
+              assert.equal(legalBalance, Number(expectedLegalTokens));
+              return crowdsaleContract.timelock1.call().then(function(timelock1Address) {
+                return tokenContract.balanceOf.call(timelock1Address).then(function(timelock1Balance) {
+                  // timelock1 tokens are allocated correctly
+                  assert.equal(timelock1Balance, Number(expectedTimelock1Tokens));      
+                });
+              });
+            });
           });
         });
       });
@@ -94,24 +103,4 @@ contract('SelfKeyCrowdsale', function(accounts) {
       });
     });
   });
-
-  /*
-  // THIS SHOULD FAIL IF UNCOMMENTED
-  it("shouldn't be able to mint directly to the tokenContract", function() {
-    var sendAmount = 1000000000 * (10 ** 18);
-
-    return tokenContract.mint(accounts[1], sendAmount).then(function() {
-      return tokenContract.balanceOf.call(accounts[1]).then(function(value) {
-        console.log("accounts[1] balance = " + value);
-        assert.isTrue(false);
-      });
-    });
-  });*/
-  /*
-  // FAILS
-  it("should deploy OpenZeppelin Crowdsale contract", function() {
-    return Crowdsale.new(start, end, rate, wallet).then(function(instance) {
-      assert.isNotNull(instance);
-    });
-  })*/
 });
