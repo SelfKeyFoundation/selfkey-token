@@ -55,14 +55,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
             assert.equal(Number(balance), transferValue);
           });
         });
-
-        // Send tokens to Metamask account
-        var metaAccount = "0xf5a7f6cd92907d2C27EfBeB659aC1BC26D72f077";
-        return tokenContract.transfer(metaAccount, 1e18, {from: buyer}).then(function(result) {
-          return tokenContract.balanceOf.call(metaAccount).then(function(balance) {
-            assert.equal(Number(balance), 1e18);
-          });
-        });
       });
     });
   });
