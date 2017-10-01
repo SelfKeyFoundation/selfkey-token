@@ -49,19 +49,33 @@ contract('SelfKeyCrowdsale', function(accounts) {
         assert.equal(Number(balance), sendAmount * rate);   // KEY balance is correct
         assert.equal(walletNewBalance - walletInitialBalance, sendAmount);    // Wallet received correct ETH
 
-        // Should be able to transfer tokens to another address
-        return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+        // Shouldn't be able to transfer tokens to another address until kyc is verified and crowdsale finalized
+        // THIS SHOULD FAIL IF UNCOMMENTED
+        /*return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
           return tokenContract.balanceOf.call(receiver).then(function(balance) {
             assert.equal(Number(balance), transferValue);
           });
+        });*/
+
+        return crowdsaleContract.finalize().then(function(result) {
+          // THIS SHOULD FAIL UNTIL KYC IS VERIFIED
+          /*return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+            return tokenContract.balanceOf.call(receiver).then(function(balance) {
+              assert.equal(Number(balance), transferValue);
+            });
+          });*/
+          return crowdsaleContract.verifyKYC(buyer).then(function(result) {
+            return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+              return tokenContract.balanceOf.call(receiver).then(function(balance) {
+                assert.equal(Number(balance), transferValue);
+              });
+            });
+          });
+
         });
       });
     });
   });
-
-  /*it("should listen for events", function() {
-    var watcher = crowdsaleContract.TokenPurchase();
-  });*/
 
   /*
   // THIS SHOULD FAIL IF UNCOMMENTED

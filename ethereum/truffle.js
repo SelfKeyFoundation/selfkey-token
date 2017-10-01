@@ -15,11 +15,12 @@ module.exports = {
       port: 8545,
       network_id: "*",
       gas: 999999
+    },
+    ropsten: {
+      host: "localhost",
+      port: 8546,
+      network_id: "*",
+      gas: 999999
     }
-    /*ropsten: {
-      host: "https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60",
-      port: 8545,
-      network_id: "*"
-    }*/
   }
 };
