@@ -1,93 +1,93 @@
+var SelfKeyCrowdsale = artifacts.require("./SelfKeyCrowdsale.sol");
 var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
-var LockedTokens = artifacts.require("./LockedTokens.sol");
 
-contract('SelfKeyToken', function (accounts) {
-  var contractWallet = "0xa7a287dfad291c99ad220797c2eeeed7766c114d";//accounts[1];
-  var userAccount = "0xc754e9a7d0b04c00614a863aaa002735a4ed6e78";
-  var tokenContract, lockedTokens;
+var crowdsaleContract, tokenContract, buyer, receiver;
 
-
-  it("should deploy SelfKeyToken contract", function () {
-    return SelfKeyToken.new(contractWallet).then(function (instance) {
-      tokenContract = instance;
-      assert.isNotNull(tokenContract);
+contract('SelfKeyToken', function(accounts) {
+  it("should be able to deploy standalone", function() {
+    return SelfKeyToken.new().then(function(instance) {
+      assert.isNotNull(instance);
     });
-  });
+  })
+});
 
-  it("should match wallet address passed by constructor", function () {
-    tokenContract.wallet.call().then(function (value) {
-      assert.equal(value, contractWallet);
-    });
-  });
+contract('SelfKeyCrowdsale', function(accounts) {
+  var start = 1506556800;   // 2017-09-28 @ 12:00am UTC,
+  var end = 1512086400;     // 2017-12-01 @ 12:00am UTC
+  var rate = 30000;
+  var goal = 1;             // 1 wei is enough, so no minimum cap is set (it has to be > 0)
+  var wallet = accounts[9];
 
-  it("should be linked to a non-null LockedTokens contract", function () {
-    return tokenContract.lockedTokens.call().then(function (lockedTokensAddress) {
-      assert.isNotNull(lockedTokensAddress);
-      lockedTokens = LockedTokens.at(lockedTokensAddress);
-      assert.isNotNull(lockedTokens);
-    });
-  });
+  buyer = accounts[1];
+  receiver = accounts[2];
 
-  it("should have 33% of total tokens time-locked", function () {
-    // Get address for locked tokens
-    lockedTokens.LOCK_ACC.call().then(function (address) {
-      assert.isNotNull(address);
-      // Check for total balance of locked tokens
-      lockedTokens.balanceOfLocked.call(address).then(function (value) {
-        // Get decimals factor for comparison
-        tokenContract.DECIMALSFACTOR.call().then(function (decimalsFactor) {
-            assert.equal(Number(value), 3267000000 * decimalsFactor);
+  it("should be able to deploy owning an instance of SelfKeyToken", function () {
+    return SelfKeyCrowdsale.new(start, end, rate, wallet).then(function(instance) {
+      crowdsaleContract = instance;
+      assert.isNotNull(instance);
+      return instance.token.call().then(function(token) {
+        return SelfKeyToken.at(token).then(function(instance) {
+          tokenContract = instance;
+          instance.owner.call().then(function(owner) {;
+            console.log("crowdsale address = " + crowdsaleContract.address);
+            assert.equal(owner, crowdsaleContract.address);
+          });
         });
       });
     });
   });
 
-  it("should accept ETH for buying tokens in the crowdsale", function () {
-    var contractBalance = web3.eth.getBalance(contractWallet);
-    var difference;
+  it("should be able to receive ETH contributions to buy tokens and then transfer tokens to another address", function() {
+    var sendAmount = web3.toWei(1, "ether");
+    var walletInitialBalance = web3.eth.getBalance(wallet);
 
-    return tokenContract.sendTransaction({
-      from: userAccount,
-      value: web3.toWei(1, "ether")
-    }).then(function (result) {
-        tokenContract.balanceOf.call(userAccount).then(function (value) {
-        // Checking KEY balance is above 0
-        assert.isAbove(value, 0);
-        tokenContract.balanceEth.call(userAccount).then(function (value) {
-          // Checking ETH balance is = 1 ether
-          assert.equal(value, web3.toWei(1, "ether"));
+    return crowdsaleContract.sendTransaction({from: buyer ,value: sendAmount, gas: 500000}).then(function(result) {
+      return tokenContract.balanceOf.call(buyer).then(function(balance) {
+        var walletNewBalance = web3.eth.getBalance(wallet);
+        var transferValue = web3.toWei(15000, 'ether');
+
+        assert.equal(Number(balance), sendAmount * rate);   // KEY balance is correct
+        assert.equal(walletNewBalance - walletInitialBalance, sendAmount);    // Wallet received correct ETH
+
+        // Should be able to transfer tokens to another address
+        return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+          return tokenContract.balanceOf.call(receiver).then(function(balance) {
+            assert.equal(Number(balance), transferValue);
+          });
         });
-        // new balance equals old balance plus new ether received
-        difference = web3.eth.getBalance(contractWallet) - contractBalance;
-        assert.equal(difference, web3.toWei(1, "ether"));
+
+        // Send tokens to Metamask account
+        var metaAccount = "0xf5a7f6cd92907d2C27EfBeB659aC1BC26D72f077";
+        return tokenContract.transfer(metaAccount, 1e18, {from: buyer}).then(function(result) {
+          return tokenContract.balanceOf.call(metaAccount).then(function(balance) {
+            assert.equal(Number(balance), 1e18);
+          });
+        });
       });
     });
   });
 
-  it("should have received 99 ethers from local coinbase account", function () {
-    tokenContract.balanceOf.call(userAccount).then(function (value) {
-      console.log("KEY balance = " + value);
-      //assert.isAbove(value, 0);
-      tokenContract.balanceEth.call(userAccount).then(function (value) {
-        console.log("ETH balance = " + value);
+  /*it("should listen for events", function() {
+    var watcher = crowdsaleContract.TokenPurchase();
+  });*/
+
+  /*
+  // THIS SHOULD FAIL IF UNCOMMENTED
+  it("shouldn't be able to mint directly to the tokenContract", function() {
+    var sendAmount = 1000000000 * (10 ** 18);
+
+    return tokenContract.mint(accounts[1], sendAmount).then(function() {
+      return tokenContract.balanceOf.call(accounts[1]).then(function(value) {
+        console.log("accounts[1] balance = " + value);
+        assert.isTrue(false);
       });
     });
-  });
-
-  //it("should finalise properly when requested"); // finalise
-  //it("should allow pre-sale participation");
-  //it("should allow precommitment of KEY funds");  //addPrecommitment
-
-  //it("should be able to verify KYC for participants", function () {});
-  //it("should be able to reject KYC for participants", function () {});
-  //it("should be able to allow token 'burning' if owner has approved"); // burnFrom
-
-  //it("should display correct amount of tokens in time-lock contract"); //balanceOfLocked_n
-    // totalSupplyLocked_n
-    // totalSupplyLocked
-    // totalSupplyUnlocked
-
-  //it("should allow transfer of tokens by the owner"); //transfer
-  //it("should allow transfer of tokens if authorized by the owner"); //transferFrom
-
+  });*/
+  /*
+  // FAILS
+  it("should deploy OpenZeppelin Crowdsale contract", function() {
+    return Crowdsale.new(start, end, rate, wallet).then(function(instance) {
+      assert.isNotNull(instance);
+    });
+  })*/
 });
