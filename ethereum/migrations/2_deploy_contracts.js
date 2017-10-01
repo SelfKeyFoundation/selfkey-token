@@ -6,6 +6,8 @@ module.exports = function(deployer, network, accounts) {
   var endTime = 1512086400
   var rate = 30000;
   var wallet = accounts[9];
+  var foundationPool = accounts[8];
+  var legalExpensesWallet = accounts[7];
 
-  deployer.deploy(SelfKeyCrowdsale, startTime, endTime, rate, wallet);
+  deployer.deploy(SelfKeyCrowdsale, startTime, endTime, rate, wallet, foundationPool, legalExpensesWallet);
 };

@@ -3,6 +3,7 @@ var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
 
 var crowdsaleContract, tokenContract, buyer, receiver;
 
+
 contract('SelfKeyToken', function(accounts) {
   it("should be able to deploy standalone", function() {
     return SelfKeyToken.new().then(function(instance) {
@@ -17,20 +18,37 @@ contract('SelfKeyCrowdsale', function(accounts) {
   var rate = 30000;
   var goal = 1;             // 1 wei is enough, so no minimum cap is set (it has to be > 0)
   var wallet = accounts[9];
+  var foundationPool = accounts[8];
+  var legalExpensesWallet = accounts[7];
 
   buyer = accounts[1];
   receiver = accounts[2];
 
   it("should be able to deploy owning an instance of SelfKeyToken", function () {
-    return SelfKeyCrowdsale.new(start, end, rate, wallet).then(function(instance) {
+    return SelfKeyCrowdsale.new(start, end, rate, wallet, foundationPool, legalExpensesWallet).then(function(instance) {
       crowdsaleContract = instance;
       assert.isNotNull(instance);
       return instance.token.call().then(function(token) {
+        //console.log("token contract address = " + token);
         return SelfKeyToken.at(token).then(function(instance) {
           tokenContract = instance;
           instance.owner.call().then(function(owner) {;
-            console.log("crowdsale address = " + crowdsaleContract.address);
+            //console.log("crowdsale address = " + crowdsaleContract.address);
             assert.equal(owner, crowdsaleContract.address);
+          });
+        });
+      });
+    });
+  });
+
+  it("should have distributed initial token amounts correctly", function() {
+    return crowdsaleContract.FOUNDATION_POOL_TOKENS.call().then(function(expectedFoundationTokens) {
+      return crowdsaleContract.LEGAL_EXPENSES_TOKENS.call().then(function(expectedLegalTokens) {
+        return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+          // Foundation Pool tokens are allocated correctly
+          assert.equal(foundationBalance, Number(expectedFoundationTokens));
+          return tokenContract.balanceOf.call(legalExpensesWallet).then(function(legalBalance) {
+            assert.equal(legalBalance, Number(expectedLegalTokens));
           });
         });
       });

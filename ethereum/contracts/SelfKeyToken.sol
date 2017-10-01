@@ -9,7 +9,7 @@ import 'zeppelin-solidity/contracts/token/MintableToken.sol';
 contract SelfKeyToken is MintableToken {
     string public constant NAME = "SelfKey";
     string public constant SYMBOL = "KEY";
-    uint8 public constant DECIMALS = 18;
+    uint256 public constant DECIMALS = 18;
 
     uint256 public constant TOTAL_SUPPLY_CAP = 99000000000 * (10 ** uint256(DECIMALS));
 
@@ -21,6 +21,14 @@ contract SelfKeyToken is MintableToken {
     */
     function SelfKeyToken() {
         //mint(msg.sender, TOTAL_SUPPLY_CAP);     // Transfers all tokens to the Crowdsale contract
+    }
+
+    /**
+    * @dev Overrides MintableToken.mint() for retstricting supply under TOTAL_SUPPLY_CAP
+    */
+    function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
+        require(totalSupply.add(_amount) <= TOTAL_SUPPLY_CAP);
+        return super.mint(_to, _amount);
     }
 
     /**

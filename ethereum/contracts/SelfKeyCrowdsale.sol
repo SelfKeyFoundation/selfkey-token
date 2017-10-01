@@ -16,10 +16,18 @@ contract SelfKeyCrowdsale is Ownable {
     uint256 public startTime;
     uint256 public endTime;
     uint256 public rate;        // How many token units a buyer gets per wei
-    uint256 public weiRaised;   // Amount of raised money in wei
     address public wallet;
 
+    uint256 public weiRaised;   // Amount of raised money in wei
     bool public isFinalized = false;
+
+    // Initial distribution addresses
+    address public foundationPool;
+    address public legalExpensesWallet;
+
+    // Initial distribution amounts
+    uint256 public FOUNDATION_POOL_TOKENS;
+    uint256 public LEGAL_EXPENSES_TOKENS;
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -30,7 +38,8 @@ contract SelfKeyCrowdsale is Ownable {
     /**
      * @dev Crowdsale contract constructor
      */
-    function SelfKeyCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet) {
+    function SelfKeyCrowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet,
+      address _foundationPool, address _legalExpensesWallet) {
         require(_endTime >= _startTime);
         require(_rate > 0);
         require(_wallet != 0x0);
@@ -41,6 +50,14 @@ contract SelfKeyCrowdsale is Ownable {
         endTime = _endTime;
         rate = _rate;
         wallet = _wallet;
+
+        foundationPool = _foundationPool;
+        legalExpensesWallet = _legalExpensesWallet;
+
+        FOUNDATION_POOL_TOKENS = 3267000000 * (10 ** uint256(token.DECIMALS()));    // 33%
+        LEGAL_EXPENSES_TOKENS = 99000000 * (10 ** uint256(token.DECIMALS()));       //  1%
+
+        distributeInitialFunds();
     }
 
     /**
@@ -111,6 +128,7 @@ contract SelfKeyCrowdsale is Ownable {
      * @dev Additional finalization logic. Enables token transfers.
      */
     function finalization() internal {
+        // mint remaning tokens for foundation
         token.enableTransfers();
         assert(token.transfersEnabled());
     }
@@ -131,5 +149,14 @@ contract SelfKeyCrowdsale is Ownable {
         token.setKycRequired(participant);
         assert(token.kycRequired(participant));
         RejectedKYC(participant);
+    }
+
+    function distributeInitialFunds() internal {
+        token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
+        // 33% to time-locked funds
+        token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
+
+        assert(token.balanceOf(foundationPool) == FOUNDATION_POOL_TOKENS);
+        assert(token.balanceOf(legalExpensesWallet) == LEGAL_EXPENSES_TOKENS);
     }
 }
