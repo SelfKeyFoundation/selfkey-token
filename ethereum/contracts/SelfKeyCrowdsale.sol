@@ -58,8 +58,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Creation of timelocks
         timelock1 = new TokenTimelock(token, foundationPool, uint64(startTime + 31622400));   // 1 year after startTime
 
-
-
         distributeInitialFunds();
     }
 

@@ -1,7 +1,8 @@
 var SelfKeyCrowdsale = artifacts.require("./SelfKeyCrowdsale.sol");
 var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
+var TokenTimelock = artifacts.require("zeppelin-solidity/contracts/token/TokenTimelock.sol");
 
-var crowdsaleContract, tokenContract, buyer, receiver;
+var crowdsaleContract, tokenContract, timelock1Contract, buyer, receiver;
 
 
 contract('SelfKeyToken', function(accounts) {
@@ -32,11 +33,26 @@ contract('SelfKeyCrowdsale', function(accounts) {
         //console.log("token contract address = " + token);
         return SelfKeyToken.at(token).then(function(instance) {
           tokenContract = instance;
-          instance.owner.call().then(function(owner) {;
+          instance.owner.call().then(function(owner) {
             //console.log("crowdsale address = " + crowdsaleContract.address);
             assert.equal(owner, crowdsaleContract.address);
           });
         });
+      });
+    });
+  });
+
+  it("should have created token timelocks successfully", function() {
+    return crowdsaleContract.timelock1.call().then(function(timelock1Address) {
+      return TokenTimelock.at(timelock1Address).then(function(instance) {
+        timelock1Contract = instance;
+        assert.isNotNull(instance);
+        // THIS SHOULD FAIL IF TOKENS ARE STILL LOCKED
+        /*return timelock1Contract.release().then(function(result) {
+          return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+            console.log(Number(foundationBalance));
+          });
+        });*/
       });
     });
   });
@@ -54,7 +70,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
               return crowdsaleContract.timelock1.call().then(function(timelock1Address) {
                 return tokenContract.balanceOf.call(timelock1Address).then(function(timelock1Balance) {
                   // timelock1 tokens are allocated correctly
-                  assert.equal(timelock1Balance, Number(expectedTimelock1Tokens));      
+                  assert.equal(timelock1Balance, Number(expectedTimelock1Tokens));
                 });
               });
             });
@@ -83,7 +99,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
             assert.equal(Number(balance), transferValue);
           });
         });*/
-
         return crowdsaleContract.finalize().then(function(result) {
           // THIS SHOULD FAIL UNTIL KYC IS VERIFIED
           /*return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
@@ -98,7 +113,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
               });
             });
           });
-
         });
       });
     });
