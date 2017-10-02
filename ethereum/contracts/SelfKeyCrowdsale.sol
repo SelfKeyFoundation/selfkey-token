@@ -1,6 +1,7 @@
 pragma solidity ^0.4.15;
 
 import './SelfKeyToken.sol';
+import './CrowdsaleConfig.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
@@ -9,7 +10,7 @@ import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
  * @title SelfKeyCrowdsale
  * @dev SelfKey Token Crowdsale implementation.
 */
-contract SelfKeyCrowdsale is Ownable {
+contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
 
     SelfKeyToken public token;  // Token contract
@@ -25,11 +26,6 @@ contract SelfKeyCrowdsale is Ownable {
     // Initial distribution addresses
     address public foundationPool;
     address public legalExpensesWallet;
-
-    // Initial distribution amounts
-    uint256 public FOUNDATION_POOL_TOKENS;
-    uint256 public LEGAL_EXPENSES_TOKENS;
-    uint256 public TIMELOCK1_TOKENS;
 
     // Token Timelocks
     TokenTimelock public timelock1;
@@ -62,9 +58,7 @@ contract SelfKeyCrowdsale is Ownable {
         // Creation of timelocks
         timelock1 = new TokenTimelock(token, foundationPool, uint64(startTime + 31622400));   // 1 year after startTime
 
-        FOUNDATION_POOL_TOKENS = 3267000000 * (10 ** uint256(token.DECIMALS()));    // 33%
-        TIMELOCK1_TOKENS = 3267000000 * (10 ** uint256(token.DECIMALS()));    // 33%
-        LEGAL_EXPENSES_TOKENS = 99000000 * (10 ** uint256(token.DECIMALS()));       //  1%
+
 
         distributeInitialFunds();
     }
