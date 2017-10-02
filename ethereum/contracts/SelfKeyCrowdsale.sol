@@ -106,7 +106,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function validPurchase(address beneficiary) internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
         bool nonZeroPurchase = msg.value != 0;
-        return withinPeriod && nonZeroPurchase && (now >= startTime || validPresale(beneficiary));
+        bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
+        return withinPeriod && nonZeroPurchase && belowSaleCap && (now >= startTime || validPresale(beneficiary));
     }
 
     function validPresale(address beneficiary) returns (bool) {

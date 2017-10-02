@@ -13,4 +13,5 @@ contract CrowdsaleConfig {
     uint256 public constant LEGAL_EXPENSES_TOKENS = 99000000 * (10 ** uint256(TOKEN_DECIMALS));      //  1%
 
     uint256 public constant PRESALE_CAP = 1320000000 * (10 ** uint256(TOKEN_DECIMALS));
+    uint256 public constant SALE_CAP = 3267000000 * (10 ** uint256(TOKEN_DECIMALS));                 // 33%
 }
