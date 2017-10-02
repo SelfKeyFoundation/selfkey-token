@@ -18,10 +18,13 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint64 public startTime;
     uint64 public endTime;
     uint256 public rate;        // How many token units a buyer gets per wei
+    uint256 public presaleRate; // How many token units a buyer gets per wei during pre-sale
     address public wallet;
 
     uint256 public weiRaised;   // Amount of raised money in wei
     bool public isFinalized = false;
+    mapping(address => bool) public presaleEnabled;
+    uint256 public totalPresale = 0;
 
     // Initial distribution addresses
     address public foundationPool;
@@ -39,8 +42,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     /**
      * @dev Crowdsale contract constructor
      */
-    function SelfKeyCrowdsale(uint64 _startTime, uint64 _endTime, uint256 _rate, address _wallet,
-      address _foundationPool, address _legalExpensesWallet) {
+    function SelfKeyCrowdsale(uint64 _startTime, uint64 _endTime, uint256 _rate, uint256 _presaleRate,
+      address _wallet, address _foundationPool, address _legalExpensesWallet) {
         require(_endTime >= _startTime);
         require(_rate > 0);
         require(_wallet != 0x0);
@@ -50,6 +53,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         startTime = _startTime;
         endTime = _endTime;
         rate = _rate;
+        presaleRate = _presaleRate;
         wallet = _wallet;
 
         foundationPool = _foundationPool;
@@ -73,11 +77,19 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != 0x0);
-        require(validPurchase());
+        require(validPurchase(beneficiary));
         require(msg.value != 0);
 
         uint256 weiAmount = msg.value;
         uint256 tokens = weiAmount.mul(rate);   // Calculate token amount to be created
+
+        if (now < startTime) {
+            // pre-sale
+            tokens = weiAmount.mul(presaleRate);   // Calculate token amount to be created
+            require(totalPresale.add(tokens) <= PRESALE_CAP);   //  Presale_cap must not be exceeded
+
+            totalPresale = totalPresale.add(tokens);
+        }
 
         // Update state
         weiRaised = weiRaised.add(weiAmount);
@@ -91,10 +103,23 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     /**
      * @dev Returns true if purchase is made during valid period and contribution is above 0
      */
-    function validPurchase() internal constant returns (bool) {
-        bool withinPeriod = now >= startTime && now <= endTime;
+    function validPurchase(address beneficiary) internal constant returns (bool) {
+        bool withinPeriod = now <= endTime;
         bool nonZeroPurchase = msg.value != 0;
-        return withinPeriod && nonZeroPurchase;
+        return withinPeriod && nonZeroPurchase && (now >= startTime || validPresale(beneficiary));
+    }
+
+    function validPresale(address beneficiary) returns (bool) {
+        // Beneficiary must be registered in "presale whitelist"
+        return presaleEnabled[beneficiary] == true;
+    }
+
+    function allowPresale(address beneficiary) onlyOwner public {
+        presaleEnabled[beneficiary] = true;
+    }
+
+    function disallowPresale(address beneficiary) onlyOwner public {
+        presaleEnabled[beneficiary] = false;
     }
 
     /**

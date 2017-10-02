@@ -16,8 +16,8 @@ contract('SelfKeyToken', function(accounts) {
 contract('SelfKeyCrowdsale', function(accounts) {
   var start = 1506556800;   // 2017-09-28 @ 12:00am UTC,
   var end = 1512086400;     // 2017-12-01 @ 12:00am UTC
-  var rate = 30000;
-  var goal = 1;             // 1 wei is enough, so no minimum cap is set (it has to be > 0)
+  var rate = 20000;         // approximately $0.015 per KEY
+  var presaleRate = 30000;         // approximately $0.01 per KEY
   var wallet = accounts[9];
   var foundationPool = accounts[8];
   var legalExpensesWallet = accounts[7];
@@ -26,7 +26,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
   receiver = accounts[2];
 
   it("should be able to deploy owning an instance of SelfKeyToken", function () {
-    return SelfKeyCrowdsale.new(start, end, rate, wallet, foundationPool, legalExpensesWallet).then(function(instance) {
+    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, legalExpensesWallet).then(function(instance) {
       crowdsaleContract = instance;
       assert.isNotNull(instance);
       return instance.token.call().then(function(token) {
@@ -113,6 +113,53 @@ contract('SelfKeyCrowdsale', function(accounts) {
               });
             });
           });
+        });
+      });
+    });
+  });
+});
+
+
+contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
+  var now = (new Date).getTime()/1000;
+  var start = now + 31622400;   // 1 year from now
+  var end = start + 31622400;     // 1 year from start
+  var rate = 20000;         // approximately $0.015 per KEY
+  var presaleRate = 30000;         // approximately $0.01 per KEY
+  var wallet = accounts[8];
+  var foundationPool = accounts[8];
+  var legalExpensesWallet = accounts[7];
+
+  var presaleCrowdsale, presaleToken;
+
+  buyer = accounts[3];
+  receiver = accounts[4];
+
+  it("should be able to deploy in pre-sale mode", function() {
+    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, legalExpensesWallet).then(function(instance) {
+      presaleCrowdsale = instance;
+      assert.isNotNull(instance);
+      return instance.token.call().then(function(token) {
+        //console.log("token contract address = " + token);
+        return SelfKeyToken.at(token).then(function(instance) {
+          presaleToken = instance;
+        });
+      });
+    });
+  });
+
+  it("should be able to receive ETH and allocate due tokens for pre-sale enabled addresses", function() {
+    var sendAmount = web3.toWei(1, "ether");
+    // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED
+    /*
+    return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
+      console.log(txResult);
+    });*/
+
+    return presaleCrowdsale.allowPresale(buyer).then(function() {
+      return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
+        return presaleToken.balanceOf.call(buyer).then(function(balance) {
+          assert(Number(balance), presaleRate * sendAmount);
         });
       });
     });
