@@ -9,8 +9,7 @@ var WalletSubprovider = require('web3-provider-engine/subproviders/wallet.js');
 
 // Get our mnemonic and create an hdwallet
 var walletObj = JSON.parse(fs.readFileSync("./wallet.json"));
-var mnemonic = walletObj.mnemonic
-console.log(mnemonic);
+var mnemonic = walletObj.mnemonic;
 var hdwallet = hdkey.fromMasterSeed(bip39.mnemonicToSeed(mnemonic));
 
 // Get the first account using the standard hd path.
@@ -56,7 +55,7 @@ module.exports = {
       port: 8545,
       network_id: "*"
     },
-    local: {
+    geth: {
       host: "localhost",
       port: 8545,
       network_id: "*",
