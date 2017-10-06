@@ -1,0 +1,16 @@
+{
+  "name": "SelfKey",
+  "private": true,
+  "version": "0.1.0",
+  "description": "KYC and Decentralized Identity on Ethereum",
+  "repository": "https://github.com/SelfKeyFoundation/selfkey",
+  "license": "GPL",
+  "dependencies": {
+    "ethereumjs-wallet": "^0.6.0",
+    "bip39": "^2.4.0",
+    "web3-provider-engine": "^8.6.1",
+    "web3": "^0.18.4",
+    "zeppelin-solidity": "^1.3.0",
+    "ethjs": "^0.2.8"
+  }
+}
