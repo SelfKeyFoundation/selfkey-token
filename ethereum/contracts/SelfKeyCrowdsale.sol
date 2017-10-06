@@ -135,8 +135,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Forwards funds to contract wallet.
      */
     function forwardFunds() internal {
-        //wallet.transfer(msg.value);
-        vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
+        if(now < startTime) {
+            wallet.transfer(msg.value);
+        } else {
+            vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
+        }
     }
 
     /**

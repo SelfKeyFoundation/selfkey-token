@@ -202,6 +202,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
 
   it("should be able to receive ETH and allocate due tokens for pre-sale enabled addresses", function() {
     var sendAmount = web3.toWei(1, "ether");
+    var walletBalance = web3.eth.getBalance(wallet);
     // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED YET
     //return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
     //  console.log(txResult);
@@ -210,6 +211,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
       return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
         return presaleToken.balanceOf.call(buyer).then(function(balance) {
           assert(Number(balance), presaleRate * sendAmount);
+          assert.equal(web3.eth.getBalance(wallet) - walletBalance, sendAmount);
         });
       });
     });
