@@ -51,11 +51,11 @@ contract('SelfKeyCrowdsale', function(accounts) {
         timelock1Contract = instance;
         assert.isNotNull(instance);
         // THIS SHOULD FAIL IF TOKENS ARE STILL LOCKED
-        /*return timelock1Contract.release().then(function(result) {
-          return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
-            console.log(Number(foundationBalance));
-          });
-        });*/
+        //return timelock1Contract.release().then(function(result) {
+        //  return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+        //    console.log(Number(foundationBalance));
+        //  });
+        //});
       });
     });
   });
@@ -99,7 +99,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
     vaultContract.deposited.call(buyer).then(function(balance) {
       vaultInitialBalance = balance;
       // send ETH to crowdsale contract for buying KEY
-      return crowdsaleContract.sendTransaction({from: buyer ,value: sendAmount, gas: 500000}).then(function(result) {
+      return crowdsaleContract.sendTransaction({from: buyer, value: sendAmount, gas: 500000}).then(function(result) {
         // check KEY balance of buyer
         return tokenContract.balanceOf.call(buyer).then(function(balance) {
           // Assert KEY balance is correct
@@ -109,22 +109,19 @@ contract('SelfKeyCrowdsale', function(accounts) {
             var transferValue = web3.toWei(15000, 'ether');   // to test KEY transfer further below
             var vaultNewBalance = weiBalance;
             assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount);    // Wallet received correct ETH
-
-            // Shouldn't be able to transfer tokens to another address until kyc is verified and crowdsale finalized
-            // THIS SHOULD FAIL IF UNCOMMENTED
-            /*return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
-              return tokenContract.balanceOf.call(receiver).then(function(balance) {
-                assert.equal(Number(balance), transferValue);
-              });
-            });*/
-            // Finalize crowdsale in order to test KEY token transfer
+            // THIS SHOULD FAIL SINCE CROWDSALE IS NOT FINALIZED
+            //return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+            //  return tokenContract.balanceOf.call(receiver).then(function(balance) {
+            //    assert.equal(Number(balance), transferValue);
+            //  });
+            //});
             return crowdsaleContract.finalize().then(function(result) {
               // THIS SHOULD FAIL UNTIL KYC IS VERIFIED
-              /*return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
-                return tokenContract.balanceOf.call(receiver).then(function(balance) {
-                  assert.equal(Number(balance), transferValue);
-                });
-              });*/
+              //return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
+              //  return tokenContract.balanceOf.call(receiver).then(function(balance) {
+              //    assert.equal(Number(balance), transferValue);
+              //  });
+              //});
               return crowdsaleContract.verifyKYC(buyer).then(function(result) {
                 return tokenContract.transfer(receiver, transferValue, {from: buyer, gas: 999999}).then(function(result) {
                   return tokenContract.balanceOf.call(receiver).then(function(balance) {
@@ -176,9 +173,9 @@ contract('SelfKeyCrowdsale', function(accounts) {
 contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   var now = (new Date).getTime()/1000;
   var start = now + 31622400;   // 1 year from now
-  var end = start + 31622400;     // 1 year from start
-  var rate = 20000;         // approximately $0.015 per KEY
-  var presaleRate = 30000;         // approximately $0.01 per KEY
+  var end = start + 31622400;   // 1 year from start
+  var rate = 20000;             // approximately $0.015 per KEY
+  var presaleRate = 30000;      // approximately $0.01 per KEY
   var goal = 1;
 
   var wallet = accounts[8];
@@ -206,11 +203,9 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   it("should be able to receive ETH and allocate due tokens for pre-sale enabled addresses", function() {
     var sendAmount = web3.toWei(1, "ether");
     // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED YET
-    /*
-    return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
-      console.log(txResult);
-    });*/
-
+    //return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
+    //  console.log(txResult);
+    //});
     return presaleCrowdsale.allowPresale(buyer).then(function() {
       return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
         return presaleToken.balanceOf.call(buyer).then(function(balance) {

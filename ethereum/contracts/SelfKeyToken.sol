@@ -20,7 +20,7 @@ contract SelfKeyToken is MintableToken {
     * @dev Constructor that gives msg.sender all of existing tokens.
     */
     function SelfKeyToken() {
-        //mint(msg.sender, TOTAL_SUPPLY_CAP);     // Transfers all tokens to the Crowdsale contract
+
     }
 
     /**

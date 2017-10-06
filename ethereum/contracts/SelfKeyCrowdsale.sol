@@ -102,7 +102,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Update state
         weiRaised = weiRaised.add(weiAmount);
         token.mint(beneficiary, tokens);
-        //token.setKycRequired(beneficiary);      // Set beneficiary as required for KYC
+        token.setKycRequired(beneficiary);      // Set beneficiary as required for KYC
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);    // Trigger event
 
         forwardFunds();
