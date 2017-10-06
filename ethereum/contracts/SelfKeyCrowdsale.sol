@@ -5,6 +5,7 @@ import './CrowdsaleConfig.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
+import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 
 /**
  * @title SelfKeyCrowdsale
@@ -22,9 +23,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     address public wallet;
 
     uint256 public weiRaised;   // Amount of raised money in wei
-    bool public isFinalized = false;
-    mapping(address => bool) public presaleEnabled;
+    uint256 public goal;        // Minimum cap expected to raise in wei
     uint256 public totalPresale = 0;
+    mapping(address => bool) public presaleEnabled;
+    bool public isFinalized = false;
 
     // Initial distribution addresses
     address public foundationPool;
@@ -32,6 +34,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     // Token Timelocks
     TokenTimelock public timelock1;
+
+    // Vault to hold funds until crowdsale is finalized. Allows refunding.
+    RefundVault public vault;
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -43,7 +48,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Crowdsale contract constructor
      */
     function SelfKeyCrowdsale(uint64 _startTime, uint64 _endTime, uint256 _rate, uint256 _presaleRate,
-      address _wallet, address _foundationPool, address _legalExpensesWallet) {
+      address _wallet, address _foundationPool, address _legalExpensesWallet, uint256 _goal) {
         require(_endTime >= _startTime);
         require(_rate > 0);
         require(_wallet != 0x0);
@@ -55,6 +60,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         rate = _rate;
         presaleRate = _presaleRate;
         wallet = _wallet;
+        goal = _goal;
+
+        vault = new RefundVault(wallet);
 
         foundationPool = _foundationPool;
         legalExpensesWallet = _legalExpensesWallet;
@@ -127,7 +135,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Forwards funds to contract wallet.
      */
     function forwardFunds() internal {
-        wallet.transfer(msg.value);
+        //wallet.transfer(msg.value);
+        vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
     }
 
     /**
@@ -155,9 +164,51 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Additional finalization logic. Enables token transfers.
      */
     function finalization() internal {
-        // mint remaning tokens for foundation
-        token.enableTransfers();
-        assert(token.transfersEnabled());
+        // if goal is reached, enable token transfers and close refund vault
+        if (goalReached()) {
+            vault.close();
+            token.enableTransfers();
+            assert(token.transfersEnabled());
+        } else {
+            vault.enableRefunds();
+        }
+    }
+
+    /**
+     * @dev If crowdsale is unsuccessful, investors can claim refunds
+     */
+    function claimRefund() public {
+        require(isFinalized);
+        require(!goalReached());
+
+        vault.refund(msg.sender);
+    }
+
+    /**
+     * @dev If crowdsale is unsuccessful, investors can claim refunds
+     */
+    function goalReached() public constant returns (bool) {
+        return weiRaised >= goal;
+    }
+
+    /**
+     * @dev Initial allocation of tokens
+     */
+    function distributeInitialFunds() internal {
+        token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
+        token.mint(timelock1, TIMELOCK1_TOKENS);
+        token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
+
+        assert(token.balanceOf(foundationPool) == FOUNDATION_POOL_TOKENS);
+        assert(token.balanceOf(timelock1) == TIMELOCK1_TOKENS);
+        assert(token.balanceOf(legalExpensesWallet) == LEGAL_EXPENSES_TOKENS);
+    }
+
+    /**
+     * @dev Only crowdsale owner can release time-locked tokens
+     */
+    function releaseLock1() onlyOwner public {
+        timelock1.release();
     }
 
     /**
@@ -176,19 +227,5 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         token.setKycRequired(participant);
         assert(token.kycRequired(participant));
         RejectedKYC(participant);
-    }
-
-    function distributeInitialFunds() internal {
-        token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.mint(timelock1, TIMELOCK1_TOKENS);
-        token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
-
-        assert(token.balanceOf(foundationPool) == FOUNDATION_POOL_TOKENS);
-        assert(token.balanceOf(timelock1) == TIMELOCK1_TOKENS);
-        assert(token.balanceOf(legalExpensesWallet) == LEGAL_EXPENSES_TOKENS);
-    }
-
-    function releaseLock1() onlyOwner public {
-        timelock1.release();
     }
 }

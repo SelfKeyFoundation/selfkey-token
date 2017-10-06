@@ -8,6 +8,7 @@ module.exports = function(deployer, network, accounts) {
   var endTime = startTime + 604800;       // One week after startTime
   var rate = 20000;                       // approximately $0.015 per KEY
   var presaleRate = 30000;                // approximately $0.01 per KEY
+  var goal = 3333333333333000000000;      // approximatelly $1Million in wei
 
   var foundationPool, wallet, legalExpensesWallet;
 
@@ -21,5 +22,5 @@ module.exports = function(deployer, network, accounts) {
     legalExpensesWallet = accounts[7];
   }
 
-  deployer.deploy(SelfKeyCrowdsale, startTime, endTime, rate, presaleRate, wallet, foundationPool, legalExpensesWallet);
+  deployer.deploy(SelfKeyCrowdsale, startTime, endTime, rate, presaleRate, wallet, foundationPool, legalExpensesWallet, goal);
 };
