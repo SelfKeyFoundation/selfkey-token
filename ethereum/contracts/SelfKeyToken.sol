@@ -7,11 +7,11 @@ import 'zeppelin-solidity/contracts/token/MintableToken.sol';
  * @dev SelfKey Token implementation.
 */
 contract SelfKeyToken is MintableToken {
-    string public constant NAME = "SelfKey";
-    string public constant SYMBOL = "KEY";
-    uint256 public constant DECIMALS = 18;
+    string public constant name = "SelfKey";
+    string public constant symbol = "KEY";
+    uint256 public constant decimals = 18;
 
-    uint256 public constant TOTAL_SUPPLY_CAP = 99000000000 * (10 ** uint256(DECIMALS));
+    uint256 public cap;
 
     mapping(address => bool) public kycRequired;
     bool public transfersEnabled = false;
@@ -19,15 +19,15 @@ contract SelfKeyToken is MintableToken {
     /**
     * @dev Constructor that gives msg.sender all of existing tokens.
     */
-    function SelfKeyToken() {
-
+    function SelfKeyToken(uint256 _cap) {
+        cap = _cap;
     }
 
     /**
-    * @dev Overrides MintableToken.mint() for retstricting supply under TOTAL_SUPPLY_CAP
+    * @dev Overrides MintableToken.mint() for retstricting supply under cap
     */
     function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
-        require(totalSupply.add(_amount) <= TOTAL_SUPPLY_CAP);
+        require(totalSupply.add(_amount) <= cap);
         return super.mint(_to, _amount);
     }
 

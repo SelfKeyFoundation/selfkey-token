@@ -25,6 +25,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint256 public weiRaised;   // Amount of raised money in wei
     uint256 public goal;        // Minimum cap expected to raise in wei
     uint256 public totalPresale = 0;
+
     mapping(address => bool) public presaleEnabled;
     bool public isFinalized = false;
 
@@ -53,7 +54,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(_rate > 0);
         require(_wallet != 0x0);
 
-        token = new SelfKeyToken();
+        token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
 
         startTime = _startTime;
         endTime = _endTime;
