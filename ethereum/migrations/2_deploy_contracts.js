@@ -4,11 +4,11 @@ var SelfKeyCrowdsale = artifacts.require("./SelfKeyCrowdsale.sol");
 module.exports = function(deployer, network, accounts) {
   var now = (new Date).getTime()/1000;
   //var startTime = now + 172800;           // Two days after current time
-  var startTime = 1507334400;             // Saturday Oct 07th 12:00:00 UTC
+  var startTime = 1507939200;             // 10/14/2017 @ 12:00am (UTC)
   var endTime = startTime + 604800;       // One week after startTime
   var rate = 20000;                       // approximately $0.015 per KEY
   var presaleRate = 30000;                // approximately $0.01 per KEY
-  var goal = 3333333333333000000000;      // approximatelly $1Million in wei
+  var goal = 16666666666667000000000;     // approximatelly $5Million in wei
 
   var foundationPool, wallet, legalExpensesWallet;
 
