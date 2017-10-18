@@ -119,7 +119,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         return withinPeriod && nonZeroPurchase && belowSaleCap && (now >= startTime || validPresale(beneficiary));
     }
 
-    function validPresale(address beneficiary) returns (bool) {
+    function validPresale(address beneficiary) constant returns (bool) {
         // Beneficiary must be registered in "presale whitelist"
         return presaleEnabled[beneficiary] == true;
     }
