@@ -8,8 +8,8 @@ import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
 import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 
 /**
- * @title SelfKeyCrowdsale
- * @dev SelfKey Token Crowdsale implementation.
+* @title SelfKeyCrowdsale
+* @dev SelfKey Token Crowdsale implementation.
 */
 contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
@@ -50,7 +50,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function SelfKeyCrowdsale(uint64 _startTime, uint64 _endTime, uint256 _rate, uint256 _presaleRate,
       address _wallet, address _foundationPool, address _legalExpensesWallet, uint256 _goal) {
-        require(_endTime >= _startTime);
+        require(_endTime > _startTime);
         require(_rate > 0);
         require(_wallet != 0x0);
 
@@ -75,15 +75,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Fallback function can be used to buy tokens
-     */
+    * @dev Fallback function can be used to buy tokens
+    */
     function () payable {
         buyTokens(msg.sender);
     }
 
     /**
-     * @dev Low level token purchase.
-     */
+    * @dev Low level token purchase.
+    */
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != 0x0);
         require(validPurchase(beneficiary));
@@ -110,8 +110,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Returns true if purchase is made during valid period and contribution is above 0
-     */
+    * @dev Returns true if purchase is made during valid period and contribution is above 0
+    */
     function validPurchase(address beneficiary) internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
         bool nonZeroPurchase = msg.value != 0;
@@ -119,22 +119,31 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         return withinPeriod && nonZeroPurchase && belowSaleCap && (now >= startTime || validPresale(beneficiary));
     }
 
+    /**
+    * @dev Returns true if given address is allowed to participate in the pre-sale
+    */
     function validPresale(address beneficiary) constant returns (bool) {
         // Beneficiary must be registered in "presale whitelist"
         return presaleEnabled[beneficiary] == true;
     }
 
+    /**
+    * @dev Sets given address as enabled to participate during pre-sale
+    */
     function allowPresale(address beneficiary) onlyOwner public {
         presaleEnabled[beneficiary] = true;
     }
 
+    /**
+    * @dev Sets given address as disabled to participate during pre-sale
+    */
     function disallowPresale(address beneficiary) onlyOwner public {
         presaleEnabled[beneficiary] = false;
     }
 
     /**
-     * @dev Forwards funds to contract wallet.
-     */
+    * @dev Forwards funds to contract wallet.
+    */
     function forwardFunds() internal {
         if(now < startTime) {
             wallet.transfer(msg.value);
@@ -144,16 +153,16 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Returns true if endTime has been reached.
-     */
+    * @dev Returns true if endTime has been reached.
+    */
     function hasEnded() public constant returns (bool) {
         return now > endTime;
     }
 
     /**
-     * @dev Must be called after crowdsale ends, to do some extra finalization
-     * work. Calls the contract's finalization function.
-     */
+    * @dev Must be called after crowdsale ends, to do some extra finalization
+    * work. Calls the contract's finalization function.
+    */
     function finalize() onlyOwner public {
         require(!isFinalized);
         //require(hasEnded());
@@ -165,13 +174,14 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Additional finalization logic. Enables token transfers.
-     */
+    * @dev Additional finalization logic. Enables token transfers.
+    */
     function finalization() internal {
         // if goal is reached, enable token transfers and close refund vault
         if (goalReached()) {
             vault.close();
             token.enableTransfers();
+            token.finishMinting();
             assert(token.transfersEnabled());
         } else {
             vault.enableRefunds();
@@ -179,8 +189,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev If crowdsale is unsuccessful, investors can claim refunds
-     */
+    * @dev If crowdsale is unsuccessful, investors can claim refunds
+    */
     function claimRefund() public {
         require(isFinalized);
         require(!goalReached());
@@ -189,15 +199,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev If crowdsale is unsuccessful, investors can claim refunds
-     */
+    * @dev If crowdsale is unsuccessful, investors can claim refunds
+    */
     function goalReached() public constant returns (bool) {
         return weiRaised >= goal;
     }
 
     /**
-     * @dev Initial allocation of tokens
-     */
+    * @dev Initial allocation of tokens
+    */
     function distributeInitialFunds() internal {
         token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
         token.mint(timelock1, TIMELOCK1_TOKENS);
@@ -205,15 +215,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Only crowdsale owner can release time-locked tokens
-     */
-    function releaseLock1() onlyOwner public {
+    * @dev Release time-locked tokens
+    */
+    function releaseLock1() public {
         timelock1.release();
     }
 
     /**
-     * @dev Verifies KYC for given participant. This enables token transfers from participant address
-     */
+    * @dev Verifies KYC for given participant. This enables token transfers from participant address
+    */
     function verifyKYC(address participant) onlyOwner public {
         token.unsetKycRequired(participant);
         assert(!token.kycRequired(participant));
@@ -221,8 +231,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Rejects KYC for given participant. This disables token transfers from participant address
-     */
+    * @dev Rejects KYC for given participant. This disables token transfers from participant address
+    */
     function rejectKYC(address participant) onlyOwner public {
         token.setKycRequired(participant);
         assert(token.kycRequired(participant));
