@@ -202,10 +202,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
         token.mint(timelock1, TIMELOCK1_TOKENS);
         token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
-
-        assert(token.balanceOf(foundationPool) == FOUNDATION_POOL_TOKENS);
-        assert(token.balanceOf(timelock1) == TIMELOCK1_TOKENS);
-        assert(token.balanceOf(legalExpensesWallet) == LEGAL_EXPENSES_TOKENS);
     }
 
     /**
