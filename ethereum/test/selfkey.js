@@ -3,7 +3,7 @@ var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
 var TokenTimelock = artifacts.require("zeppelin-solidity/contracts/token/TokenTimelock.sol");
 var RefundVault = artifacts.require("zeppelin-solidity/contracts/crowdsale/RefundVault.sol");
 
-var crowdsaleContract, tokenContract, timelock1Contract, vaultContract, buyer, receiver;
+var crowdsaleContract, tokenContract, timelockFoundationContract, timelockFoundersContract, vaultContract, buyer, receiver;
 
 
 contract('SelfKeyToken', function(accounts) {
@@ -23,13 +23,15 @@ contract('SelfKeyCrowdsale', function(accounts) {
 
   var wallet = accounts[9];
   var foundationPool = accounts[8];
-  var legalExpensesWallet = accounts[7];
+  var foundersPool = accounts[7];
+  var legalExpensesWallet = accounts[6];
 
   buyer = accounts[1];
   receiver = accounts[2];
 
   it("should be able to deploy owning an instance of SelfKeyToken", function () {
-    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, legalExpensesWallet, goal).then(function(instance) {
+    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, foundersPool,
+    legalExpensesWallet, goal).then(function(instance) {
       crowdsaleContract = instance;
       assert.isNotNull(instance);
       return instance.token.call().then(function(token) {
@@ -46,17 +48,25 @@ contract('SelfKeyCrowdsale', function(accounts) {
   });
 
   it("should have created token timelocks successfully", function() {
-    return crowdsaleContract.timelock1.call().then(function(timelock1Address) {
-      return TokenTimelock.at(timelock1Address).then(function(instance) {
-        timelock1Contract = instance;
-        assert.isNotNull(instance);
-        // THIS SHOULD FAIL IF TOKENS ARE STILL LOCKED
-        //return timelock1Contract.release().then(function(result) {
-        //  return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
-        //    console.log(Number(foundationBalance));
-        //  });
-        //});
+    return crowdsaleContract.timelockFoundation.call().then(function(timelockFoundation) {
+      return crowdsaleContract.timelockFounders.call().then(function(timelockFounders) {
+        return TokenTimelock.at(timelockFounders).then(function(foundersInstance) {
+          return TokenTimelock.at(timelockFoundation).then(function(foundationInstance) {
+            timelockFoundationContract = foundationInstance;
+            timelockFoundersContract = foundersInstance;
+            assert.isNotNull(foundationInstance);
+            assert.isNotNull(foundersInstance);
+            // THIS SHOULD FAIL IF TOKENS ARE STILL LOCKED
+            //return timelockFoundationContract.release().then(function(result) {
+            //  return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+            //    console.log(Number(foundationBalance));
+            //  });
+            //});
+          });
+        });
       });
+
+
     });
   });
 
@@ -72,17 +82,27 @@ contract('SelfKeyCrowdsale', function(accounts) {
   it("should have distributed initial token amounts correctly", function() {
     return crowdsaleContract.FOUNDATION_POOL_TOKENS.call().then(function(expectedFoundationTokens) {
       return crowdsaleContract.LEGAL_EXPENSES_TOKENS.call().then(function(expectedLegalTokens) {
-        return crowdsaleContract.TIMELOCK1_TOKENS.call().then(function(expectedTimelock1Tokens) {
-          return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
-            // Foundation Pool tokens are allocated correctly
-            assert.equal(foundationBalance, Number(expectedFoundationTokens));
-            return tokenContract.balanceOf.call(legalExpensesWallet).then(function(legalBalance) {
-              // Legal expenses wallet tokens are allocated correctly
-              assert.equal(legalBalance, Number(expectedLegalTokens));
-              return crowdsaleContract.timelock1.call().then(function(timelock1Address) {
-                return tokenContract.balanceOf.call(timelock1Address).then(function(timelock1Balance) {
-                  // timelock1 tokens are allocated correctly
-                  assert.equal(timelock1Balance, Number(expectedTimelock1Tokens));
+        return crowdsaleContract.FOUNDERS_TOKENS_VESTED.call().then(function(expectedTimelockFoundersTokens) {
+          return crowdsaleContract.FOUNDATION_TOKENS_VESTED.call().then(function(expectedTimelockFoundationTokens) {
+            return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
+              // Foundation Pool tokens are allocated correctly
+              assert.equal(foundationBalance, Number(expectedFoundationTokens));
+              return tokenContract.balanceOf.call(legalExpensesWallet).then(function(legalBalance) {
+                // Legal expenses wallet tokens are allocated correctly
+                assert.equal(legalBalance, Number(expectedLegalTokens));
+
+                crowdsaleContract.timelockFoundation.call().then(function(timelockFoundationAddress) {
+                  return tokenContract.balanceOf.call(timelockFoundationAddress).then(function(timelockFoundationBalance) {
+                    // timelockFoundation tokens are allocated correctly
+                    assert.equal(timelockFoundationBalance, Number(expectedTimelockFoundationTokens));
+                  });
+                });
+
+                return crowdsaleContract.timelockFounders.call().then(function(timelockFoundersAddress) {
+                  return tokenContract.balanceOf.call(timelockFoundersAddress).then(function(timelockFoundersBalance) {
+                    // timelockFounders tokens are allocated correctly
+                    assert.equal(timelockFoundersBalance, Number(expectedTimelockFoundersTokens));
+                  });
                 });
               });
             });
@@ -140,7 +160,8 @@ contract('SelfKeyCrowdsale', function(accounts) {
     var goal = 3333333333333333333333;
     var sendAmount = web3.toWei(3, "ether");
 
-    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, legalExpensesWallet, goal).then(function(instance) {
+    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, foundersPool,
+    legalExpensesWallet, goal).then(function(instance) {
       var failedCrowdsaleContract = instance;
       assert.isNotNull(instance);
 
@@ -180,7 +201,8 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
 
   var wallet = accounts[8];
   var foundationPool = accounts[8];
-  var legalExpensesWallet = accounts[7];
+  var foundersPool = accounts[7];
+  var legalExpensesWallet = accounts[6];
 
   var presaleCrowdsale, presaleToken;
 
@@ -188,7 +210,8 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   receiver = accounts[4];
 
   it("should be able to deploy in pre-sale mode", function() {
-    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, legalExpensesWallet, goal).then(function(instance) {
+    return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, foundersPool,
+    legalExpensesWallet, goal).then(function(instance) {
       presaleCrowdsale = instance;
       assert.isNotNull(instance);
       return instance.token.call().then(function(token) {
