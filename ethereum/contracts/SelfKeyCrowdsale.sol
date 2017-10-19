@@ -18,6 +18,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     uint64 public startTime;
     uint64 public endTime;
+
     uint256 public rate;        // How many token units a buyer gets per wei
     uint256 public presaleRate; // How many token units a buyer gets per wei during pre-sale
     address public wallet;
@@ -119,7 +120,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function validPurchase(address beneficiary) internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool withinCap = msg.value >= PURCHASE_MIN_CAP;
+        bool withinCap = msg.value >= PURCHASE_MIN_CAP && vault.deposited(msg.sender).add(msg.value) <= PURCHASE_MAX_CAP;
         bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
         return withinPeriod && withinCap && belowSaleCap && (now >= startTime || validPresale(beneficiary));
     }
