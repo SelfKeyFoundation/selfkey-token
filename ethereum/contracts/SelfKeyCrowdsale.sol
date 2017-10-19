@@ -115,13 +115,13 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev Returns true if purchase is made during valid period and contribution is above 0
+    * @dev Returns true if purchase is made during valid period and contribution is above between caps
     */
     function validPurchase(address beneficiary) internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool nonZeroPurchase = msg.value != 0;
+        bool withinCap = msg.value >= PURCHASE_MIN_CAP;
         bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
-        return withinPeriod && nonZeroPurchase && belowSaleCap && (now >= startTime || validPresale(beneficiary));
+        return withinPeriod && withinCap && belowSaleCap && (now >= startTime || validPresale(beneficiary));
     }
 
     /**

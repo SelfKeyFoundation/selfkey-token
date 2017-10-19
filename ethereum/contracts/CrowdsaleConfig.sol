@@ -13,6 +13,9 @@ contract CrowdsaleConfig {
     uint256 public constant PRESALE_CAP = 2639999736 * (10 ** uint256(TOKEN_DECIMALS));              // 80% of the sale cap
     uint256 public constant SALE_CAP = 3299999670 * (10 ** uint256(TOKEN_DECIMALS));                 // 33%
 
+    uint256 public constant PURCHASE_MIN_CAP = 333333333000000000;      // approx. $100 in wei
+    uint256 public constant PURCHASE_MAX_CAP = 50000000000000000000;    // approx. $15,000 in wei
+
     uint256 public constant FOUNDATION_POOL_TOKENS = 3299999670 * (10 ** uint256(TOKEN_DECIMALS));   // 33%
     uint256 public constant LEGAL_EXPENSES_TOKENS = 99999990 * (10 ** uint256(TOKEN_DECIMALS));      //  1%
 
