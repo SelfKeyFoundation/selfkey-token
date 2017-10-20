@@ -28,6 +28,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint256 public totalPresale = 0;
 
     mapping(address => bool) public presaleEnabled;
+    mapping(address => bool) public kycVerified;
+    //mapping(address => uint256) public lockedBalance;
     bool public isFinalized = false;
 
     // Initial distribution addresses
@@ -109,7 +111,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Update state
         weiRaised = weiRaised.add(weiAmount);
         token.mint(beneficiary, tokens);
-        token.setKycRequired(beneficiary);      // Set beneficiary as required for KYC
+        //token.setKycRequired(beneficiary);
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);    // Trigger event
 
         forwardFunds();
@@ -186,7 +188,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // if goal is reached, enable token transfers and close refund vault
         if (goalReached()) {
             vault.close();
-            token.enableTransfers();
+            //token.enableTransfers();
             token.finishMinting();
         } else {
             vault.enableRefunds();
@@ -198,7 +200,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function claimRefund() public {
         require(isFinalized);
-        require(!goalReached());
+        require(!goalReached());    // might better ask if vault is disabled for refunds
 
         vault.refund(msg.sender);
     }
@@ -236,8 +238,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Verifies KYC for given participant. This enables token transfers from participant address
     */
     function verifyKYC(address participant) onlyOwner public {
-        token.unsetKycRequired(participant);
-        assert(!token.kycRequired(participant));
+        kycVerified[participant] = true;
         VerifiedKYC(participant);
     }
 
@@ -245,8 +246,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Rejects KYC for given participant. This disables token transfers from participant address
     */
     function rejectKYC(address participant) onlyOwner public {
-        token.setKycRequired(participant);
-        assert(token.kycRequired(participant));
+        kycVerified[participant] = false;
+        // refund if purchased
         RejectedKYC(participant);
     }
 }

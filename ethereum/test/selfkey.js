@@ -136,12 +136,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
             //  });
             //});
             return crowdsaleContract.finalize().then(function(result) {
-              // THIS SHOULD FAIL UNTIL KYC IS VERIFIED
-              //return tokenContract.transfer(receiver, transferValue, {from: buyer}).then(function(result) {
-              //  return tokenContract.balanceOf.call(receiver).then(function(balance) {
-              //    assert.equal(Number(balance), transferValue);
-              //  });
-              //});
               return crowdsaleContract.verifyKYC(buyer).then(function(result) {
                 return tokenContract.transfer(receiver, transferValue, {from: buyer, gas: 999999}).then(function(result) {
                   return tokenContract.balanceOf.call(receiver).then(function(balance) {
@@ -199,7 +193,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   var presaleRate = 30000;      // approximately $0.01 per KEY
   var goal = 1;
 
-  var wallet = accounts[8];
+  var wallet = accounts[9];
   var foundationPool = accounts[8];
   var foundersPool = accounts[7];
   var legalExpensesWallet = accounts[6];
