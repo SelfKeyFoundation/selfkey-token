@@ -2,10 +2,11 @@ pragma solidity ^0.4.15;
 
 import './SelfKeyToken.sol';
 import './CrowdsaleConfig.sol';
+import './ForcedRefundVault.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
-import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 
 /**
 * @title SelfKeyCrowdsale
@@ -13,6 +14,7 @@ import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 */
 contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
+    using SafeERC20 for SelfKeyToken;
 
     SelfKeyToken public token;  // Token contract
 
@@ -29,7 +31,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     mapping(address => bool) public presaleEnabled;
     mapping(address => bool) public kycVerified;
-    //mapping(address => uint256) public lockedBalance;
+    mapping(address => uint256) public weiContributed;
+    mapping(address => uint256) public lockedBalance;
     bool public isFinalized = false;
 
     // Initial distribution addresses
@@ -42,7 +45,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     TokenTimelock public timelockFoundation;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding.
-    RefundVault public vault;
+    ForcedRefundVault public vault;
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -60,6 +63,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(_wallet != 0x0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
+        token.mint(address(this), TOTAL_SUPPLY_CAP);    // mints all tokens and gives them to the crowdsale
 
         startTime = _startTime;
         endTime = _endTime;
@@ -68,7 +72,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         wallet = _wallet;
         goal = _goal;
 
-        vault = new RefundVault(wallet);
+        vault = new ForcedRefundVault(wallet);
 
         foundationPool = _foundationPool;
         foundersPool = _foundersPool;
@@ -94,7 +98,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != 0x0);
         require(!isFinalized);
-        require(validPurchase(beneficiary));
+        require(validPurchase());
         require(msg.value != 0);
 
         uint256 weiAmount = msg.value;
@@ -102,6 +106,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         if (now < startTime) {
             // pre-sale
+            require(kycVerified[msg.sender] == true);
+
             tokens = weiAmount.mul(presaleRate);   // Calculate token amount to be created
             require(totalPresale.add(tokens) <= PRESALE_CAP);   //  Presale_cap must not be exceeded
 
@@ -110,54 +116,33 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         // Update state
         weiRaised = weiRaised.add(weiAmount);
-        token.mint(beneficiary, tokens);
-        //token.setKycRequired(beneficiary);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);    // Trigger event
+        weiContributed[msg.sender] = weiAmount;
 
+        if (kycVerified[msg.sender] == true) {
+            token.safeTransfer(msg.sender, tokens);
+        } else {
+            lockedBalance[msg.sender] = tokens;
+        }
+
+        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);    // Trigger event
         forwardFunds();
     }
 
     /**
     * @dev Returns true if purchase is made during valid period and contribution is above between caps
     */
-    function validPurchase(address beneficiary) internal constant returns (bool) {
+    function validPurchase() internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
         bool withinCap = msg.value >= PURCHASE_MIN_CAP && vault.deposited(msg.sender).add(msg.value) <= PURCHASE_MAX_CAP;
         bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
-        return withinPeriod && withinCap && belowSaleCap && (now >= startTime || validPresale(beneficiary));
-    }
-
-    /**
-    * @dev Returns true if given address is allowed to participate in the pre-sale
-    */
-    function validPresale(address beneficiary) constant returns (bool) {
-        // Beneficiary must be registered in "presale whitelist"
-        return presaleEnabled[beneficiary] == true;
-    }
-
-    /**
-    * @dev Sets given address as enabled to participate during pre-sale
-    */
-    function allowPresale(address beneficiary) onlyOwner public {
-        presaleEnabled[beneficiary] = true;
-    }
-
-    /**
-    * @dev Sets given address as disabled to participate during pre-sale
-    */
-    function disallowPresale(address beneficiary) onlyOwner public {
-        presaleEnabled[beneficiary] = false;
+        return withinPeriod && withinCap && belowSaleCap;
     }
 
     /**
     * @dev Forwards funds to contract wallet.
     */
     function forwardFunds() internal {
-        if(now < startTime) {
-            wallet.transfer(msg.value);
-        } else {
-            vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
-        }
+        vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
     }
 
     /**
@@ -196,7 +181,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev If crowdsale is unsuccessful, investors can claim refunds
+    * @dev If crowdsale is unsuccessful, investors can claim refunds.
     */
     function claimRefund() public {
         require(isFinalized);
@@ -216,11 +201,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Initial allocation of tokens
     */
     function distributeInitialFunds() internal {
-        token.mint(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.mint(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
+        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
 
-        token.mint(timelockFoundation, FOUNDATION_TOKENS_VESTED);
-        token.mint(timelockFounders, FOUNDERS_TOKENS_VESTED);
+        token.safeTransfer(timelockFoundation, FOUNDATION_TOKENS_VESTED);
+        token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
     }
 
     /**
@@ -239,6 +224,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function verifyKYC(address participant) onlyOwner public {
         kycVerified[participant] = true;
+        token.safeTransfer(participant, lockedBalance[participant]);
+        lockedBalance[participant] = 0;
         VerifiedKYC(participant);
     }
 
@@ -247,7 +234,30 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function rejectKYC(address participant) onlyOwner public {
         kycVerified[participant] = false;
+
         // refund if purchased
+        if (weiContributed[participant] > 0) {
+            vault.forceRefund(participant);
+        }
+
+        lockedBalance[participant] = 0;
         RejectedKYC(participant);
+    }
+
+    /**
+    * @dev Adds an address for pre-sale commitments made off-chain.
+    * Contribution = 0 is valid, just to whitelist the address as KYC-verified.
+    */
+    function addPrecommitment(address participant, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
+        kycVerified[participant] = true;
+        weiContributed[participant] = weiContribution;
+
+        // calculate special price
+        if (weiContribution > 0) {
+            uint256 newRate = rate.mul(100).div(bonusFactor.add(100));
+            uint256 tokens = newRate * weiContribution;
+            weiRaised = weiRaised.add(weiContribution);
+            token.safeTransfer(participant, tokens);
+        }
     }
 }
