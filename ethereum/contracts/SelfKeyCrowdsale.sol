@@ -42,7 +42,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     // Token Timelocks
     TokenTimelock public timelockFounders;
-    TokenTimelock public timelockFoundation;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding.
     ForcedRefundVault public vault;
@@ -79,7 +78,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         legalExpensesWallet = _legalExpensesWallet;
 
         // Creation of timelocks
-        timelockFoundation = new TokenTimelock(token, foundationPool, uint64(startTime + 31622400));   // 1 year after startTime
         timelockFounders = new TokenTimelock(token, foundersPool, uint64(startTime + 31622400));       // 1 year after startTime
 
         distributeInitialFunds();
@@ -203,8 +201,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function distributeInitialFunds() internal {
         token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
         token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
-
-        token.safeTransfer(timelockFoundation, FOUNDATION_TOKENS_VESTED);
         token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
     }
 
@@ -213,10 +209,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function releaseLockFounders() public {
         timelockFounders.release();
-    }
-
-    function releaseLockFoundation() public {
-        timelockFoundation.release();
     }
 
     /**
