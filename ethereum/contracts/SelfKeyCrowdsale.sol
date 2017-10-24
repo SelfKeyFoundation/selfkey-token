@@ -131,7 +131,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function validPurchase() internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool aboveMinPurchaseCap = vault.deposited[msg.sender].add(msg.value) >= SINGLE_PURCHASE_MIN_CAP
+        bool aboveMinPurchaseCap = vault.deposited[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI
         bool belowMaxPurchaseCap = vault.deposited[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
         bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
         return withinPeriod && withinCap && belowSaleCap;
