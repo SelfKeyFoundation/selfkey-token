@@ -8,7 +8,7 @@ module.exports = function(deployer, network, accounts) {
   var endTime = startTime + 604800;       // One week after startTime
   var rate = 20000;                       // approximately $0.015 per KEY
   var presaleRate = 30000;                // approximately $0.01 per KEY
-  var goal = 16666666666667000000000;     // approximatelly $5Million in wei
+  var goal = 8333333333333000000000;     // approximatelly $2.5Million in wei
 
   var foundationPool, foundersPool, wallet, legalExpensesWallet;
 

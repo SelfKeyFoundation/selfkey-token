@@ -14,10 +14,13 @@ contract ForcedRefundVault is Ownable, RefundVault {
         wallet = _wallet;
     }
 
-    function forceRefund (address participant) onlyOwner {
+    function forceRefund (address participant) onlyOwner returns (uint256){
         uint256 depositedValue = deposited[participant];
-        deposited[participant] = 0;
-        participant.transfer(depositedValue);
-        Refunded(participant, depositedValue);
+        if (depositedValue > 0) {
+            participant.transfer(depositedValue);
+            deposited[participant] = 0;
+            Refunded(participant, depositedValue);
+        }
+        return depositedValue;
     }
 }

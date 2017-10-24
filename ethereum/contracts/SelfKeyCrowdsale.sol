@@ -31,7 +31,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     mapping(address => bool) public presaleEnabled;
     mapping(address => bool) public kycVerified;
-    mapping(address => uint256) public weiContributed;
     mapping(address => uint256) public lockedBalance;
     bool public isFinalized = false;
 
@@ -48,8 +47,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
-    event VerifiedKYC(address _participant);
-    event RejectedKYC(address _participant);
+    event VerifiedKYC(address indexed participant);
+    event RejectedKYC(address indexed participant);
+    event AddedPrecommitment(address indexed participant, uint256 contribution, uint256 bonusFactor, uint256 _rate);
     event Finalized();
 
     /**
@@ -63,6 +63,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
         token.mint(address(this), TOTAL_SUPPLY_CAP);    // mints all tokens and gives them to the crowdsale
+        token.finishMinting();
 
         startTime = _startTime;
         endTime = _endTime;
@@ -102,8 +103,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint256 weiAmount = msg.value;
         uint256 tokens = weiAmount.mul(rate);   // Calculate token amount to be created
 
+        // pre-sale
         if (now < startTime) {
-            // pre-sale
             require(kycVerified[msg.sender] == true);
 
             tokens = weiAmount.mul(presaleRate);   // Calculate token amount to be created
@@ -114,7 +115,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         // Update state
         weiRaised = weiRaised.add(weiAmount);
-        weiContributed[msg.sender] = weiAmount;
 
         if (kycVerified[msg.sender] == true) {
             token.safeTransfer(msg.sender, tokens);
@@ -131,7 +131,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function validPurchase() internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool withinCap = msg.value >= PURCHASE_MIN_CAP && vault.deposited(msg.sender).add(msg.value) <= PURCHASE_MAX_CAP;
+        bool aboveMinPurchaseCap = vault.deposited[msg.sender].add(msg.value) >= SINGLE_PURCHASE_MIN_CAP
+        bool belowMaxPurchaseCap = vault.deposited[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
         bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
         return withinPeriod && withinCap && belowSaleCap;
     }
@@ -171,8 +172,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // if goal is reached, enable token transfers and close refund vault
         if (goalReached()) {
             vault.close();
-            //token.enableTransfers();
-            token.finishMinting();
         } else {
             vault.enableRefunds();
         }
@@ -216,8 +215,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function verifyKYC(address participant) onlyOwner public {
         kycVerified[participant] = true;
-        token.safeTransfer(participant, lockedBalance[participant]);
-        lockedBalance[participant] = 0;
+        // If participant has allocated (locked) tokens, transfer
+        if (lockedBalance[participant] > 0) {
+            token.safeTransfer(participant, lockedBalance[participant]);
+            lockedBalance[participant] = 0;
+        }
         VerifiedKYC(participant);
     }
 
@@ -225,12 +227,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Rejects KYC for given participant. This disables token transfers from participant address
     */
     function rejectKYC(address participant) onlyOwner public {
+        require(!kycVerified[participant]);
         kycVerified[participant] = false;
 
-        // refund if purchased
-        if (weiContributed[participant] > 0) {
-            vault.forceRefund(participant);
-        }
+        uint256 refunded = vault.forceRefund(participant);
+        weiRaised = weiRaised.sub(refunded);
 
         lockedBalance[participant] = 0;
         RejectedKYC(participant);
@@ -241,15 +242,20 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * Contribution = 0 is valid, just to whitelist the address as KYC-verified.
     */
     function addPrecommitment(address participant, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
-        kycVerified[participant] = true;
-        weiContributed[participant] = weiContribution;
+        verifyKYC(participant);
 
-        // calculate special price
         if (weiContribution > 0) {
-            uint256 newRate = rate.mul(100).div(bonusFactor.add(100));
+            // calculate token allocation at bonus price
+            uint256 newRate = rate.add(rate.mul(bonusFactor).div(100));
             uint256 tokens = newRate * weiContribution;
             weiRaised = weiRaised.add(weiContribution);
+
+            //  Presale_cap must not be exceeded
+            require(totalPresale.add(tokens) <= PRESALE_CAP);
+
             token.safeTransfer(participant, tokens);
+            totalPresale = totalPresale.add(tokens);
+            AddedPrecommitment(participant, weiContribution, bonusFactor, newRate);
         }
     }
 }
