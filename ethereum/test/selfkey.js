@@ -101,7 +101,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
   });
 
   it("should be able to receive ETH contributions to buy tokens and then transfer tokens to another address", function() {
-    var sendAmount = web3.toWei(1, "ether");
+    var sendAmount = web3.toWei(2, "ether");
     var vaultInitialBalance;
 
     vaultContract.deposited.call(buyer).then(function(balance) {
@@ -114,23 +114,8 @@ contract('SelfKeyCrowdsale', function(accounts) {
           assert.equal(Number(balance), sendAmount * rate);
           return vaultContract.deposited.call(buyer).then(function(weiBalance) {
             var vaultNewBalance = weiBalance;
-            // Check wei added to Refund vault is correct
-            assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount);    // Wallet received correct ETH
-            // Finalize contract
-            return crowdsaleContract.finalize().then(function(result) {
-              return crowdsaleContract.verifyKYC(buyer).then(function(result) {
-                return tokenContract.balanceOf.call(buyer).then(function (balance) {
-                  assert.equal(Number(balance), sendAmount * rate);
-                  var transferValue = web3.toWei(15000, 'ether');
-                  // Try transferring tokens once sale is finalized and holder's KYC verified
-                  return tokenContract.transfer(receiver, transferValue, {from: buyer, gas: 999999}).then(function(result) {
-                    return tokenContract.balanceOf.call(receiver).then(function(balance) {
-                      assert.equal(Number(balance), transferValue);
-                    });
-                  });
-                });
-              });
-            });
+            // Check wei added to the vault is correct
+            assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount);    // Vault received correct ETH
           });
         });
       });
@@ -154,6 +139,40 @@ contract('SelfKeyCrowdsale', function(accounts) {
         return crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
           // Check allocated tokens to the participant are reset now
           assert.equal(Number(balance), 0);
+        });
+      });
+    });
+  });
+
+  it("should allow claiming of tokens for KYC-verified participants", function () {
+    // THIS SHOULD FAIL SINCE PARTICIPANT IS NOT KYC-VERIFIED
+    //return crowdsaleContract.claimTokens({from: buyer}).then(function() {
+      // get token balance from participant wallet
+      //return tokenContract.balanceOf.call(buyer).then(function(balanceAfter) {
+        //return crowdsaleContract.lockedBalance.call(buyer).then(function(locked2) {
+        //});
+      //});
+    //});
+    // get token balance allocated (still locked) to the participant
+    return crowdsaleContract.lockedBalance.call(buyer).then(function(locked1) {
+      var lockedBalance = Number(locked1);
+      // get token balance from participant wallet (should be zero)
+      return tokenContract.balanceOf.call(buyer).then(function(balanceBefore) {
+        assert.equal(Number(balanceBefore), 0);
+        // verify buyer KYC and finalize crowdsale
+        return crowdsaleContract.verifyKYC(buyer).then(function () {
+          return crowdsaleContract.finalize().then(function() {
+            // let buyer claim corresponding tokens
+            return crowdsaleContract.claimTokens({from: buyer}).then(function() {
+              // get token balance from participant wallet
+              return tokenContract.balanceOf.call(buyer).then(function(balanceAfter) {
+                assert.equal(lockedBalance, Number(balanceAfter));
+                return crowdsaleContract.lockedBalance.call(buyer).then(function(locked2) {
+                  assert.equal(Number(locked2), 0);
+                });
+              });
+            });
+          });
         });
       });
     });
@@ -242,10 +261,10 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
         return presaleCrowdsale.weiRaised.call().then(function (value2) {
           // Check contribution wei has been successfully registered in the crowdsale
           assert.equal(value2 - value1, sendAmount);
-          // Check tokens have been transferred correctly
-          return presaleToken.balanceOf.call(buyer2).then(function (balance) {
+          // Check tokens have been allocated correctly
+          return presaleCrowdsale.lockedBalance.call(buyer2).then(function (balance) {
             var newRate = rate + (rate * bonusFactor)/100;
-            assert.equal(balance, sendAmount * newRate);
+            assert.equal(Number(balance), sendAmount * newRate);
           });
         });
       });
@@ -253,7 +272,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   });
 
   // Public pre-sale
-  it("should be able to receive ETH and allocate due tokens for pre-sale enabled addresses", function() {
+  it("should be able to receive ETH and allocate due tokens for kyc-verified addresses", function() {
     var sendAmount = web3.toWei(1, "ether");
     var walletBalance = web3.eth.getBalance(wallet);
     // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED (KYC-VERIFIED) YET
@@ -262,7 +281,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
     //});
     return presaleCrowdsale.verifyKYC(buyer).then(function (tx) {
       return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
-        return presaleToken.balanceOf.call(buyer).then(function(balance) {
+        return presaleCrowdsale.lockedBalance.call(buyer).then(function(balance) {
           assert.equal(Number(balance), presaleRate * sendAmount);
         });
       });

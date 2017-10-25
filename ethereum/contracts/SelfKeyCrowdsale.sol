@@ -27,7 +27,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     uint256 public weiRaised;   // Amount of raised money in wei
     uint256 public goal;        // Minimum cap expected to raise in wei
-    uint256 public totalPresale = 0;
+    uint256 public totalPurchased = 0;      // Total amount of tokens purchased, including pre-sale
 
     mapping(address => bool) public presaleEnabled;
     mapping(address => bool) public kycVerified;
@@ -108,21 +108,17 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             require(kycVerified[msg.sender] == true);
 
             tokens = weiAmount.mul(presaleRate);   // Calculate token amount to be created
-            require(totalPresale.add(tokens) <= PRESALE_CAP);   //  Presale_cap must not be exceeded
-
-            totalPresale = totalPresale.add(tokens);
+            require(totalPurchased.add(tokens) <= PRESALE_CAP);   //  Presale_cap must not be exceeded
         }
+        // Total sale cap must not be exceeded
+        require(totalPurchased.add(tokens) <= SALE_CAP);
 
         // Update state
         weiRaised = weiRaised.add(weiAmount);
+        totalPurchased = totalPurchased.add(tokens);
+        lockedBalance[msg.sender] = tokens;
 
-        if (kycVerified[msg.sender] == true) {
-            token.safeTransfer(msg.sender, tokens);
-        } else {
-            lockedBalance[msg.sender] = tokens;
-        }
-
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);    // Trigger event
+        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
         forwardFunds();
     }
 
@@ -133,8 +129,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         bool withinPeriod = now <= endTime;
         bool aboveMinPurchaseCap = vault.deposited(msg.sender).add(msg.value) >= PURCHASE_MIN_CAP_WEI;
         bool belowMaxPurchaseCap = vault.deposited(msg.sender).add(msg.value) <= PURCHASE_MAX_CAP_WEI;
-        bool belowSaleCap = weiRaised.add(msg.value) <= SALE_CAP;
-        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap && belowSaleCap;
+        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 
     /**
@@ -178,6 +173,20 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
+    * @dev If crowdsale has finalized, participants can claim their tokens
+    */
+    function claimTokens() public {
+        require(isFinalized);
+        require(goalReached());
+        require(kycVerified[msg.sender]);
+
+        if (lockedBalance[msg.sender] > 0) {
+            token.safeTransfer(msg.sender, lockedBalance[msg.sender]);
+            lockedBalance[msg.sender] = 0;
+        }
+    }
+
+    /**
     * @dev If crowdsale is unsuccessful, investors can claim refunds.
     */
     function claimRefund() public {
@@ -199,8 +208,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function distributeInitialFunds() internal {
         token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
         token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
+        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
@@ -215,11 +224,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function verifyKYC(address participant) onlyOwner public {
         kycVerified[participant] = true;
-        // If participant has allocated (locked) tokens, transfer
-        if (lockedBalance[participant] > 0) {
-            token.safeTransfer(participant, lockedBalance[participant]);
-            lockedBalance[participant] = 0;
-        }
         VerifiedKYC(participant);
     }
 
@@ -251,10 +255,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             weiRaised = weiRaised.add(weiContribution);
 
             //  Presale_cap must not be exceeded
-            require(totalPresale.add(tokens) <= PRESALE_CAP);
+            require(totalPurchased.add(tokens) <= PRESALE_CAP);
 
-            token.safeTransfer(participant, tokens);
-            totalPresale = totalPresale.add(tokens);
+            lockedBalance[participant] = lockedBalance[participant].add(tokens);
+            totalPurchased = totalPurchased.add(tokens);
             AddedPrecommitment(participant, weiContribution, bonusFactor, newRate);
         }
     }
