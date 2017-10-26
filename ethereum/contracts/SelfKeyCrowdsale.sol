@@ -32,6 +32,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     mapping(address => bool) public presaleEnabled;
     mapping(address => bool) public kycVerified;
     mapping(address => uint256) public lockedBalance;
+
     bool public isFinalized = false;
 
     // Initial distribution addresses
@@ -62,7 +63,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(_wallet != 0x0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
-        token.mint(address(this), TOTAL_SUPPLY_CAP);    // mints all tokens and gives them to the crowdsale
+        // mints all tokens and gives them to the crowdsale
+        token.mint(address(this), TOTAL_SUPPLY_CAP);
         token.finishMinting();
 
         startTime = _startTime;
@@ -101,9 +103,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(msg.value != 0);
 
         uint256 weiAmount = msg.value;
-        uint256 tokens = weiAmount.mul(rate);   // Calculate token amount to be created
+        uint256 tokens = weiAmount.mul(rate);   // Calculate token amount to be allocated
 
-        // pre-sale
+        // if pre-sale
         if (now < startTime) {
             require(kycVerified[msg.sender] == true);
 
@@ -140,19 +142,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev Returns true if endTime has been reached.
-    */
-    function hasEnded() public constant returns (bool) {
-        return now > endTime;
-    }
-
-    /**
     * @dev Must be called after crowdsale ends, to do some extra finalization
     * work. Calls the contract's finalization function.
     */
     function finalize() onlyOwner public {
         require(!isFinalized);
-        //require(hasEnded());
 
         finalization();
         Finalized();
@@ -191,13 +185,13 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function claimRefund() public {
         require(isFinalized);
-        require(!goalReached());    // might better ask if vault is disabled for refunds
+        require(!goalReached());
 
         vault.refund(msg.sender);
     }
 
     /**
-    * @dev If crowdsale is unsuccessful, investors can claim refunds
+    * @dev If crowdsale is unsuccessful, participants can claim refunds
     */
     function goalReached() public constant returns (bool) {
         return weiRaised >= goal;
