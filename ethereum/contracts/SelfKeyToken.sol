@@ -1,17 +1,27 @@
 pragma solidity ^0.4.15;
 
 import 'zeppelin-solidity/contracts/token/MintableToken.sol';
+import './SelfKeyCrowdsale.sol';
 
 /**
  * @title SelfKeyToken
  * @dev SelfKey Token implementation.
 */
-contract SelfKeyToken is MintableToken {
+contract SelfKeyToken is MintableToken{
     string public constant name = "SelfKey";
     string public constant symbol = "KEY";
     uint256 public constant decimals = 18;
 
     uint256 public cap;
+    bool transfersEnabled = false;
+
+    /**
+    * @dev Checks whether it can transfer or otherwise throws.
+    */
+    modifier canTransfer(address _sender, uint256 _value) {
+        require(transfersEnabled || _sender == this.owner());
+        _;
+    }
 
     /**
     * @dev Constructor that gives msg.sender all of existing tokens.
@@ -26,5 +36,23 @@ contract SelfKeyToken is MintableToken {
     function mint(address _to, uint256 _amount) onlyOwner canMint public returns (bool) {
         require(totalSupply.add(_amount) <= cap);
         return super.mint(_to, _amount);
+    }
+
+    /**
+    * @dev Checks modifier and allows transfer if tokens are not locked.
+    */
+    function transfer(address _to, uint256 _value) canTransfer(msg.sender, _value) public returns (bool) {
+        return super.transfer(_to, _value);
+    }
+
+    /**
+    * @dev Checks modifier and allows transfer if tokens are not locked.
+    */
+    function transferFrom(address _from, address _to, uint256 _value) canTransfer(_from, _value) public returns (bool) {
+        return super.transferFrom(_from, _to, _value);
+    }
+
+    function enableTransfers() onlyOwner public {
+        transfersEnabled = true;
     }
 }

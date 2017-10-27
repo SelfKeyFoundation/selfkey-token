@@ -29,9 +29,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint256 public goal;        // Minimum cap expected to raise in wei
     uint256 public totalPurchased = 0;      // Total amount of tokens purchased, including pre-sale
 
-    mapping(address => bool) public presaleEnabled;
     mapping(address => bool) public kycVerified;
     mapping(address => uint256) public lockedBalance;
+    mapping(address => uint256) public weiContributed;
 
     bool public isFinalized = false;
 
@@ -116,9 +116,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(totalPurchased.add(tokens) <= SALE_CAP);
 
         // Update state
+        if (kycVerified[msg.sender]) {
+            token.safeTransfer(msg.sender, tokens);
+        } else {
+            lockedBalance[msg.sender] = tokens;
+        }
+
         weiRaised = weiRaised.add(weiAmount);
+        weiContributed[msg.sender] = weiContributed[msg.sender].add(weiAmount);
         totalPurchased = totalPurchased.add(tokens);
-        lockedBalance[msg.sender] = tokens;
 
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
         forwardFunds();
@@ -129,8 +135,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function validPurchase() internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool aboveMinPurchaseCap = vault.deposited(msg.sender).add(msg.value) >= PURCHASE_MIN_CAP_WEI;
-        bool belowMaxPurchaseCap = vault.deposited(msg.sender).add(msg.value) <= PURCHASE_MAX_CAP_WEI;
+        bool aboveMinPurchaseCap = weiContributed[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
+        bool belowMaxPurchaseCap = weiContributed[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
         return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 
@@ -161,22 +167,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // if goal is reached, enable token transfers and close refund vault
         if (goalReached()) {
             vault.close();
+            token.enableTransfers();
         } else {
             vault.enableRefunds();
-        }
-    }
-
-    /**
-    * @dev If crowdsale has finalized, participants can claim their tokens
-    */
-    function claimTokens() public {
-        require(isFinalized);
-        require(goalReached());
-        require(kycVerified[msg.sender]);
-
-        if (lockedBalance[msg.sender] > 0) {
-            token.safeTransfer(msg.sender, lockedBalance[msg.sender]);
-            lockedBalance[msg.sender] = 0;
         }
     }
 
@@ -218,6 +211,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function verifyKYC(address participant) onlyOwner public {
         kycVerified[participant] = true;
+
+        if (lockedBalance[participant] > 0) {
+            token.safeTransfer(participant, lockedBalance[participant]);
+            lockedBalance[participant] = 0;
+        }
         VerifiedKYC(participant);
     }
 
@@ -230,28 +228,28 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         uint256 refunded = vault.forceRefund(participant);
         weiRaised = weiRaised.sub(refunded);
-
         lockedBalance[participant] = 0;
         RejectedKYC(participant);
     }
 
     /**
     * @dev Adds an address for pre-sale commitments made off-chain.
-    * Contribution = 0 is valid, just to whitelist the address as KYC-verified.
+    * Contribution = 0 is valid, to just whitelist the address as KYC-verified.
     */
     function addPrecommitment(address participant, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
-        verifyKYC(participant);
+        require(now < startTime);   // requires to be on pre-sale
+        kycVerified[participant] = true;
 
         if (weiContribution > 0) {
             // calculate token allocation at bonus price
             uint256 newRate = rate.add(rate.mul(bonusFactor).div(100));
             uint256 tokens = newRate * weiContribution;
-            weiRaised = weiRaised.add(weiContribution);
-
             //  Presale_cap must not be exceeded
             require(totalPurchased.add(tokens) <= PRESALE_CAP);
 
-            lockedBalance[participant] = lockedBalance[participant].add(tokens);
+            weiRaised = weiRaised.add(weiContribution);
+            weiContributed[participant] = weiContributed[participant].add(weiContribution);
+            token.safeTransfer(participant, tokens);
             totalPurchased = totalPurchased.add(tokens);
             AddedPrecommitment(participant, weiContribution, bonusFactor, newRate);
         }

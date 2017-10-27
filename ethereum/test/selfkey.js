@@ -6,14 +6,6 @@ var RefundVault = artifacts.require("zeppelin-solidity/contracts/crowdsale/Refun
 var crowdsaleContract, tokenContract, timelockFoundersContract, vaultContract, buyer, receiver;
 
 
-contract('SelfKeyToken', function(accounts) {
-  it("should be able to deploy standalone", function() {
-    return SelfKeyToken.new().then(function(instance) {
-      assert.isNotNull(instance);
-    });
-  })
-});
-
 contract('SelfKeyCrowdsale', function(accounts) {
   var start = 1506556800;   // 2017-09-28 @ 12:00am UTC,
   var end = 1512086400;     // 2017-12-01 @ 12:00am UTC
@@ -28,7 +20,8 @@ contract('SelfKeyCrowdsale', function(accounts) {
 
   buyer = accounts[1];
   buyer2 = accounts[2];
-  receiver = accounts[3];
+  buyer3 = accounts[3];
+  receiver = accounts[4];
 
 
   it("should be able to deploy owning an instance of SelfKeyToken", function () {
@@ -54,12 +47,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
       return TokenTimelock.at(timelockFounders).then(function(foundersInstance) {
         timelockFoundersContract = foundersInstance;
         assert.isNotNull(foundersInstance);
-        // THIS SHOULD FAIL IF TOKENS ARE STILL LOCKED
-        //return timelockFoundationContract.release().then(function(result) {
-        //  return tokenContract.balanceOf.call(foundationPool).then(function(foundationBalance) {
-        //    console.log(Number(foundationBalance));
-        //  });
-        //});
       });
     });
   });
@@ -107,7 +94,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
     vaultContract.deposited.call(buyer).then(function(balance) {
       vaultInitialBalance = balance;
       // send ETH to crowdsale contract for buying KEY
-      return crowdsaleContract.sendTransaction({from: buyer, value: sendAmount, gas: 500000}).then(function(result) {
+      return crowdsaleContract.sendTransaction({from: buyer, value: sendAmount}).then(function(result) {
         // check KEY (locked) balance of buyer
         return crowdsaleContract.lockedBalance.call(buyer).then(function(balance) {
           // Assert (locked) KEY balance is correct
@@ -122,11 +109,25 @@ contract('SelfKeyCrowdsale', function(accounts) {
     });
   });
 
+  it("should not allow contributions below minimum purchase cap", function() {
+    // THIS SHOULD FAIL IF UNCOMMENTED
+    //var sendAmount = 333333333000000000 - 50;
+    //return crowdsaleContract.sendTransaction({from: buyer3, value: sendAmount}).then(function(result) {});
+    assert.isOk(true);
+  });
+
+  it("should not allow contributions above maximum purchase cap", function() {
+    // THIS SHOULD FAIL IF UNCOMMENTED
+    //var sendAmount = 50000000000000000000 + 5000;
+    //return crowdsaleContract.sendTransaction({from: buyer3, value: sendAmount}).then(function(result) {});
+    assert.isOk(true);
+  });
+
   it("should allow forced refund for KYC-failed participants", function () {
     var sendAmount = web3.toWei(1, "ether");
     var balance1 = web3.eth.getBalance(buyer2);
     // send ETH to crowdsale contract for buying KEY
-    return crowdsaleContract.sendTransaction({from: buyer2, value: sendAmount, gas: 500000}).then(function(tx) {
+    return crowdsaleContract.sendTransaction({from: buyer2, value: sendAmount}).then(function(tx) {
       var balance2 = web3.eth.getBalance(buyer2);
       crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
         // Check tokens were effectively allocated (locked) to the participant
@@ -139,40 +140,6 @@ contract('SelfKeyCrowdsale', function(accounts) {
         return crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
           // Check allocated tokens to the participant are reset now
           assert.equal(Number(balance), 0);
-        });
-      });
-    });
-  });
-
-  it("should allow claiming of tokens for KYC-verified participants", function () {
-    // THIS SHOULD FAIL SINCE PARTICIPANT IS NOT KYC-VERIFIED
-    //return crowdsaleContract.claimTokens({from: buyer}).then(function() {
-      // get token balance from participant wallet
-      //return tokenContract.balanceOf.call(buyer).then(function(balanceAfter) {
-        //return crowdsaleContract.lockedBalance.call(buyer).then(function(locked2) {
-        //});
-      //});
-    //});
-    // get token balance allocated (still locked) to the participant
-    return crowdsaleContract.lockedBalance.call(buyer).then(function(locked1) {
-      var lockedBalance = Number(locked1);
-      // get token balance from participant wallet (should be zero)
-      return tokenContract.balanceOf.call(buyer).then(function(balanceBefore) {
-        assert.equal(Number(balanceBefore), 0);
-        // verify buyer KYC and finalize crowdsale
-        return crowdsaleContract.verifyKYC(buyer).then(function () {
-          return crowdsaleContract.finalize().then(function() {
-            // let buyer claim corresponding tokens
-            return crowdsaleContract.claimTokens({from: buyer}).then(function() {
-              // get token balance from participant wallet
-              return tokenContract.balanceOf.call(buyer).then(function(balanceAfter) {
-                assert.equal(lockedBalance, Number(balanceAfter));
-                return crowdsaleContract.lockedBalance.call(buyer).then(function(locked2) {
-                  assert.equal(Number(locked2), 0);
-                });
-              });
-            });
-          });
         });
       });
     });
@@ -191,7 +158,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
         return SelfKeyToken.at(token).then(function(instance) {
           var failedTokenContract = instance;
           // Purchase equivalent of <sendAmount> in tokens
-          return failedCrowdsaleContract.sendTransaction({from: buyer, value: sendAmount, gas: 500000}).then(function(txn1) {
+          return failedCrowdsaleContract.sendTransaction({from: buyer, value: sendAmount}).then(function(txn1) {
             // Get refund vault contract instance
             return failedCrowdsaleContract.vault.call().then(function(vaultAddress) {
               return RefundVault.at(vaultAddress).then(function(instance) {
@@ -202,7 +169,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
                 return failedCrowdsaleContract.finalize().then(function(result) {
                   var balance1 = web3.eth.getBalance(buyer);
                   // Issue refund
-                  return failedCrowdsaleContract.claimRefund({from: buyer, gas: 500000}).then(function(txn2) {
+                  return failedCrowdsaleContract.claimRefund({from: buyer}).then(function(txn2) {
                     var balance2 = web3.eth.getBalance(buyer);
                     // Check buyer balance increases
                     assert.isAbove(balance2, balance1);
@@ -262,7 +229,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
           // Check contribution wei has been successfully registered in the crowdsale
           assert.equal(value2 - value1, sendAmount);
           // Check tokens have been allocated correctly
-          return presaleCrowdsale.lockedBalance.call(buyer2).then(function (balance) {
+          return presaleToken.balanceOf.call(buyer2).then(function (balance) {
             var newRate = rate + (rate * bonusFactor)/100;
             assert.equal(Number(balance), sendAmount * newRate);
           });
@@ -280,8 +247,8 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
     //  console.log(txResult);
     //});
     return presaleCrowdsale.verifyKYC(buyer).then(function (tx) {
-      return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999}).then(function(txResult) {
-        return presaleCrowdsale.lockedBalance.call(buyer).then(function(balance) {
+      return presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount}).then(function(txResult) {
+        return presaleToken.balanceOf.call(buyer).then(function(balance) {
           assert.equal(Number(balance), presaleRate * sendAmount);
         });
       });
