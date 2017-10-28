@@ -103,6 +103,14 @@ contract('SelfKeyCrowdsale', function(accounts) {
             var vaultNewBalance = weiBalance;
             // Check wei added to the vault is correct
             assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount);    // Vault received correct ETH
+            // verify KYC for buyer
+            return crowdsaleContract.verifyKYC(buyer).then(function() {
+              return tokenContract.balanceOf.call(buyer).then(function(balance) {
+                assert.equal(Number(balance), sendAmount * rate);
+                // THIS SHOULD FAIL SINCE TRANSFERS HAVEN'T BEEN ENABLED YET
+                //return tokenContract.transfer(receiver, 5 ,{from: buyer});
+              });
+            });
           });
         });
       });
@@ -123,7 +131,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
     assert.isOk(true);
   });
 
-  it("should allow forced refund for KYC-failed participants", function () {
+  it("should allow forced refund for KYC-failed participants", function() {
     var sendAmount = web3.toWei(1, "ether");
     var balance1 = web3.eth.getBalance(buyer2);
     // send ETH to crowdsale contract for buying KEY

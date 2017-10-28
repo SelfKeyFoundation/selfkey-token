@@ -131,16 +131,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev Returns true if purchase is made during valid period and contribution is above between caps
-    */
-    function validPurchase() internal constant returns (bool) {
-        bool withinPeriod = now <= endTime;
-        bool aboveMinPurchaseCap = weiContributed[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
-        bool belowMaxPurchaseCap = weiContributed[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
-        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
-    }
-
-    /**
     * @dev Forwards funds to contract wallet.
     */
     function forwardFunds() internal {
@@ -253,5 +243,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             totalPurchased = totalPurchased.add(tokens);
             AddedPrecommitment(participant, weiContribution, bonusFactor, newRate);
         }
+    }
+
+    /**
+    * @dev Returns true if purchase is made during valid period and contribution is above between caps
+    */
+    function validPurchase() internal constant returns (bool) {
+        bool withinPeriod = now <= endTime;
+        bool aboveMinPurchaseCap = weiContributed[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
+        bool belowMaxPurchaseCap = weiContributed[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
+        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 }
