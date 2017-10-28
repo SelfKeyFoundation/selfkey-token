@@ -28,6 +28,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint256 public weiRaised;   // Amount of raised money in wei
     uint256 public goal;        // Minimum cap expected to raise in wei
     uint256 public totalPurchased = 0;      // Total amount of tokens purchased, including pre-sale
+    uint256 public lockedTotal = 0;     // counter of how many tokens are still locked to non-verified participants
 
     mapping(address => bool) public kycVerified;
     mapping(address => uint256) public lockedBalance;
@@ -120,6 +121,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             token.safeTransfer(msg.sender, tokens);
         } else {
             lockedBalance[msg.sender] = tokens;
+            lockedTotal = lockedTotal.add(tokens);
         }
 
         weiRaised = weiRaised.add(weiAmount);
@@ -156,6 +158,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function finalization() internal {
         // if goal is reached, enable token transfers and close refund vault
         if (goalReached()) {
+            burnUnsold();
             vault.close();
             token.enableTransfers();
         } else {
@@ -203,8 +206,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         kycVerified[participant] = true;
 
         if (lockedBalance[participant] > 0) {
-            token.safeTransfer(participant, lockedBalance[participant]);
+            uint256 tokens = lockedBalance[participant];
+            token.safeTransfer(participant, tokens);
             lockedBalance[participant] = 0;
+            lockedTotal = lockedTotal.sub(tokens);
         }
         VerifiedKYC(participant);
     }
@@ -217,7 +222,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         kycVerified[participant] = false;
 
         uint256 refunded = vault.forceRefund(participant);
+        uint256 tokensLocked = lockedBalance[participant];
         weiRaised = weiRaised.sub(refunded);
+        lockedTotal = lockedTotal.sub(tokensLocked);
         lockedBalance[participant] = 0;
         RejectedKYC(participant);
     }
@@ -253,5 +260,14 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         bool aboveMinPurchaseCap = weiContributed[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
         bool belowMaxPurchaseCap = weiContributed[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
         return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
+    }
+
+    /**
+    * @dev Burn all remaining (unsold) tokens. This should be called after sale finalization
+    */
+    function burnUnsold() internal {
+        // All tokens held by this contract (except for those still locked to participants) should be burnt
+        uint256 tokens = token.balanceOf(this) - lockedTotal;
+        token.burn(tokens);
     }
 }

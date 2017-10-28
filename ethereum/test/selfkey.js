@@ -153,6 +153,27 @@ contract('SelfKeyCrowdsale', function(accounts) {
     });
   });
 
+  it("should be able to finalize token sale", function() {
+    var sendAmount = 5000;
+    // THIS SHOULD FAILS SINCE SALE IS NOT FINALIZED YET
+    //tokenContract.transfer(receiver, sendAmount, {from: buyer}).then(function() {
+    //  tokenContract.balanceOf.call(receiver).then(function(balance) {
+    //    assert.equal(sendAmount, balance);
+    //  });
+    //});
+    return crowdsaleContract.finalize().then(function() {
+      tokenContract.balanceOf.call(crowdsaleContract.address).then(function(balance) {
+        // check unsold tokens were effectively burned
+        assert.equal(balance, 0);
+        tokenContract.transfer(receiver, sendAmount, {from: buyer}).then(function() {
+          tokenContract.balanceOf.call(receiver).then(function(balance) {
+            assert.equal(sendAmount, balance);
+          });
+        });
+      });
+    });
+  });
+
   it("should allow refunds for a crowdsale whose goal hasn't been reached", function() {
     var goal = 3333333333333333333333;
     var sendAmount = web3.toWei(3, "ether");
