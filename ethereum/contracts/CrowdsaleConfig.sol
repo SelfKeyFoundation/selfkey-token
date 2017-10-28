@@ -8,10 +8,17 @@ pragma solidity ^0.4.15;
 contract CrowdsaleConfig {
     // Initial distribution amounts
     uint256 public constant TOKEN_DECIMALS = 18;
-    uint256 public constant FOUNDATION_POOL_TOKENS = 3267000000 * (10 ** uint256(TOKEN_DECIMALS));   // 33%
-    uint256 public constant TIMELOCK1_TOKENS = 3267000000 * (10 ** uint256(TOKEN_DECIMALS));         // 33%
-    uint256 public constant LEGAL_EXPENSES_TOKENS = 99000000 * (10 ** uint256(TOKEN_DECIMALS));      //  1%
 
-    uint256 public constant PRESALE_CAP = 1320000000 * (10 ** uint256(TOKEN_DECIMALS));
-    uint256 public constant SALE_CAP = 3267000000 * (10 ** uint256(TOKEN_DECIMALS));                 // 33%
+    uint256 public constant TOTAL_SUPPLY_CAP = 9999999000 * (10 ** uint256(TOKEN_DECIMALS));
+    uint256 public constant PRESALE_CAP = 2639999736 * (10 ** uint256(TOKEN_DECIMALS));              // 26.4% of the sale cap
+    uint256 public constant SALE_CAP = 3299999670 * (10 ** uint256(TOKEN_DECIMALS));                 // 33%
+
+    uint256 public constant PURCHASE_MIN_CAP_WEI = 333333333000000000;      // approx. $100 in wei
+    uint256 public constant PURCHASE_MAX_CAP_WEI = 50000000000000000000;    // approx. $15,000 in wei, per contributor
+
+    uint256 public constant FOUNDATION_POOL_TOKENS = 4949999505 * (10 ** uint256(TOKEN_DECIMALS));   // 49.5%
+    uint256 public constant LEGAL_EXPENSES_TOKENS = 99999990 * (10 ** uint256(TOKEN_DECIMALS));      //  1%
+
+    // Timelocked tokens
+    uint256 public constant FOUNDERS_TOKENS_VESTED = 1649999835 * (10 ** uint256(TOKEN_DECIMALS));   // 16.5%
 }
