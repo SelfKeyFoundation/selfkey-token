@@ -226,6 +226,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         weiRaised = weiRaised.sub(refunded);
         lockedTotal = lockedTotal.sub(tokensLocked);
         lockedBalance[participant] = 0;
+        // if token sale has finalized already, burn these tokens as well
+        if (isFinalized && goalReached()) {
+            burnUnsold();
+        }
+
         RejectedKYC(participant);
     }
 
@@ -267,7 +272,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function burnUnsold() internal {
         // All tokens held by this contract (except for those still locked to participants) should be burnt
-        uint256 tokens = token.balanceOf(this) - lockedTotal;
+        uint256 tokens = token.balanceOf(this).sub(lockedTotal);
         token.burn(tokens);
     }
 }
