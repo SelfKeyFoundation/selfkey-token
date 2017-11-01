@@ -6,7 +6,7 @@ import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 * @title ForcedRefundVault
 * @dev RefundVault for refunding on KYC fail cases, regardless of refunds being "enabled" or not.
 */
-contract ForcedRefundVault is Ownable, RefundVault {
+contract ForcedRefundVault is RefundVault {
     using SafeMath for uint256;
 
     function ForcedRefundVault(address _wallet)
