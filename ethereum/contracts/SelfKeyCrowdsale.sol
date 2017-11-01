@@ -100,7 +100,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function buyTokens(address beneficiary) public payable {
         require(beneficiary != 0x0);
         require(!isFinalized);
-        require(validPurchase());
+        require(validPurchase(beneficiary));
         require(msg.value != 0);
 
         uint256 weiAmount = msg.value;
@@ -108,7 +108,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         // if pre-sale
         if (now < startTime) {
-            require(kycVerified[msg.sender] == true);
+            require(kycVerified[beneficiary] == true);
 
             tokens = weiAmount.mul(presaleRate);   // Calculate token amount to be created
             require(totalPurchased.add(tokens) <= PRESALE_CAP);   //  Presale_cap must not be exceeded
@@ -117,26 +117,26 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(totalPurchased.add(tokens) <= SALE_CAP);
 
         // Update state
-        if (kycVerified[msg.sender]) {
-            token.safeTransfer(msg.sender, tokens);
+        if (kycVerified[beneficiary]) {
+            token.safeTransfer(beneficiary, tokens);
         } else {
-            lockedBalance[msg.sender] = lockedBalance[msg.sender].add(tokens);
+            lockedBalance[beneficiary] = lockedBalance[beneficiary].add(tokens);
             lockedTotal = lockedTotal.add(tokens);
         }
 
         weiRaised = weiRaised.add(weiAmount);
-        weiContributed[msg.sender] = weiContributed[msg.sender].add(weiAmount);
+        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
         totalPurchased = totalPurchased.add(tokens);
 
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
-        forwardFunds();
+        forwardFunds(beneficiary);
     }
 
     /**
     * @dev Forwards funds to contract wallet.
     */
-    function forwardFunds() internal {
-        vault.deposit.value(msg.value)(msg.sender);     // Store funds in "refund vault"
+    function forwardFunds(address beneficiary) internal {
+        vault.deposit.value(msg.value)(beneficiary);     // Store funds in "refund vault"
     }
 
     /**
@@ -238,9 +238,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Adds an address for pre-sale commitments made off-chain.
     * Contribution = 0 is valid, to just whitelist the address as KYC-verified.
     */
-    function addPrecommitment(address participant, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
+    function addPrecommitment(address beneficiary, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
         require(now < startTime);   // requires to be on pre-sale
-        kycVerified[participant] = true;
+        kycVerified[beneficiary] = true;
 
         if (weiContribution > 0) {
             // calculate token allocation at bonus price
@@ -250,20 +250,20 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             require(totalPurchased.add(tokens) <= PRESALE_CAP);
 
             weiRaised = weiRaised.add(weiContribution);
-            weiContributed[participant] = weiContributed[participant].add(weiContribution);
-            token.safeTransfer(participant, tokens);
+            weiContributed[beneficiary] = weiContributed[beneficiary].add(weiContribution);
+            token.safeTransfer(beneficiary, tokens);
             totalPurchased = totalPurchased.add(tokens);
-            AddedPrecommitment(participant, weiContribution, bonusFactor, newRate);
+            AddedPrecommitment(beneficiary, weiContribution, bonusFactor, newRate);
         }
     }
 
     /**
     * @dev Returns true if purchase is made during valid period and contribution is above between caps
     */
-    function validPurchase() internal constant returns (bool) {
+    function validPurchase(address beneficiary) internal constant returns (bool) {
         bool withinPeriod = now <= endTime;
-        bool aboveMinPurchaseCap = weiContributed[msg.sender].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
-        bool belowMaxPurchaseCap = weiContributed[msg.sender].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
+        bool aboveMinPurchaseCap = weiContributed[beneficiary].add(msg.value) >= PURCHASE_MIN_CAP_WEI;
+        bool belowMaxPurchaseCap = weiContributed[beneficiary].add(msg.value) <= PURCHASE_MAX_CAP_WEI;
         return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 
