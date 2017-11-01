@@ -11,7 +11,6 @@ contract ForcedRefundVault is Ownable, RefundVault {
 
     function ForcedRefundVault(address _wallet)
         RefundVault(_wallet) {
-        wallet = _wallet;
     }
 
     function forceRefund (address participant) onlyOwner returns (uint256){
