@@ -240,6 +240,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     */
     function addPrecommitment(address beneficiary, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
         require(now < startTime);   // requires to be on pre-sale
+        require(!isFinalized);      // requires unfinalized state (in case owner finalizes before startTime)
         kycVerified[beneficiary] = true;
 
         if (weiContribution > 0) {
