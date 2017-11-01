@@ -120,7 +120,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         if (kycVerified[msg.sender]) {
             token.safeTransfer(msg.sender, tokens);
         } else {
-            lockedBalance[msg.sender] = tokens;
+            lockedBalance[msg.sender] = lockedBalance[msg.sender].add(tokens);
             lockedTotal = lockedTotal.add(tokens);
         }
 
