@@ -82,7 +82,7 @@ All unsold tokens are "burned", meaning they are destroyed and substracted from 
 No more tokens can be minted after contract deployment.
 * KYC _verification_ and _rejection_  are at this point single transactions dealing with single Ethereum addresses. For the handling of "lists" (imports, exports and alike) additional systems need to be in place for multiple calls to the contract.
 * Sending ETH directly to the SelfKeyCrowdsale contract means the sender is the crowdsale participant. By calling the buyTokens directly, sender can specify another address as the beneficiary of the tokens, purchasing on behalf of the latter.
-* When a KYC is rejected for a given participant, the whole purchase is rolled-back and all related ETH contribution is put into "refundable" mode, taken apart from all counters, meaning such participant must claim the refund even if he/she is KYC-verified for later purchases.
+* When KYC is rejected for a given participant, the whole purchase is rolled-back and all contributed ETH from this participant is put into "refundable" mode, substracting its amount from all counters, which means such participant _must_ claim the refund even if he/she is KYC-verified for later purchases. After a rejection, any successful verification doesn't (and cannot) take into account previous rejected contributions (as these are taken apart for user withdrawal).
 * Since participants can be KYC-rejected and then make another purchase, KYC verification must be done on a _per purchase_ basis.
 
 # Conclusion
