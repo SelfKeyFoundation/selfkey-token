@@ -53,7 +53,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
     event VerifiedKYC(address indexed participant);
     event RejectedKYC(address indexed participant);
-    event AddedPrecommitment(address indexed participant, uint256 contribution, uint256 bonusFactor, uint256 _rate);
+    event AddedPrecommitment(address indexed participant, uint256 contribution, uint256 bonusFactor, uint256 _rate, uint64 vestingMonths);
     event Finalized();
 
     /**
@@ -277,15 +277,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             if (vestingPeriod == 0) {
                 token.safeTransfer(beneficiary, tokens);
             } else {
-                uint64 vestingDays = vestingPeriod * 30;  // 1 month = 30 days
+                uint64 vestingSeconds = vestingPeriod * 30 days;  // 1 month = 30 days
                 uint256 half = tokens.div(2);
-                TokenTimelock timelock = new TokenTimelock(token, beneficiary, uint64(startTime + vestingDays));
+                TokenTimelock timelock = new TokenTimelock(token, beneficiary, uint64(startTime + vestingSeconds));
                 vestedTokens[beneficiary] = address(timelock);
                 token.safeTransfer(beneficiary, half);
                 token.safeTransfer(timelock, tokens.sub(half));
             }
 
-            AddedPrecommitment(beneficiary, weiContribution, bonusFactor, newRate);
+            AddedPrecommitment(beneficiary, weiContribution, bonusFactor, newRate, vestingPeriod);
         }
     }
 
