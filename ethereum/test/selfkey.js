@@ -1,7 +1,7 @@
 var SelfKeyCrowdsale = artifacts.require("./SelfKeyCrowdsale.sol");
 var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
 var TokenTimelock = artifacts.require("zeppelin-solidity/contracts/token/TokenTimelock.sol");
-var RefundVault = artifacts.require("zeppelin-solidity/contracts/crowdsale/RefundVault.sol");
+var ForcedRefundVault = artifacts.require("./ForcedRefundVault.sol");
 
 var crowdsaleContract, tokenContract, timelockFoundersContract, vaultContract, buyer, receiver;
 
@@ -53,7 +53,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
 
   it("should have created Refund Vault successfully", function() {
     return crowdsaleContract.vault.call().then(function(vaultAddress) {
-      return RefundVault.at(vaultAddress).then(function(instance) {
+      return ForcedRefundVault.at(vaultAddress).then(function(instance) {
         vaultContract = instance;
         assert.isNotNull(instance);
       });
@@ -138,16 +138,23 @@ contract('SelfKeyCrowdsale', function(accounts) {
     return crowdsaleContract.sendTransaction({from: buyer2, value: sendAmount}).then(function(tx) {
       var balance2 = web3.eth.getBalance(buyer2);
       crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
-        // Check tokens were effectively allocated (locked) to the participant
+        // check tokens were effectively allocated (locked) to the participant
         assert.isAbove(Number(balance), 0);
       });
       return crowdsaleContract.rejectKYC(buyer2).then(function(result) {
-        var balance3 = web3.eth.getBalance(buyer2);
-        // Check refund was made correctly
-        assert.equal(Number(balance3), Number(balance2) + Number(sendAmount));
-        return crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
-          // Check allocated tokens to the participant are reset now
+
+        crowdsaleContract.lockedBalance.call(buyer2).then(function(balance) {
+          // check allocated tokens to the participant are reset now
           assert.equal(Number(balance), 0);
+        });
+        // check refund was enabled correctly
+        return vaultContract.toRefund.call(buyer2).then(function(refundBalance) {
+          assert.equal(sendAmount, refundBalance);
+          // user claims refund
+          return crowdsaleContract.claimRefund({from: buyer2}).then(function() {
+            var balance3 = web3.eth.getBalance(buyer2);
+            assert.isAbove(Number(balance3), Number(balance2));
+          });
         });
       });
     });
@@ -161,10 +168,13 @@ contract('SelfKeyCrowdsale', function(accounts) {
     //    assert.equal(sendAmount, balance);
     //  });
     //});
+    var sendAmount = web3.toWei(1, "ether");
+
     return crowdsaleContract.finalize().then(function() {
       tokenContract.balanceOf.call(crowdsaleContract.address).then(function(balance) {
         // check unsold tokens were effectively burned
         assert.equal(balance, 0);
+        // check tokens are now transferrable
         tokenContract.transfer(receiver, sendAmount, {from: buyer}).then(function() {
           tokenContract.balanceOf.call(receiver).then(function(balance) {
             assert.equal(sendAmount, balance);
@@ -190,18 +200,20 @@ contract('SelfKeyCrowdsale', function(accounts) {
           return failedCrowdsaleContract.sendTransaction({from: buyer, value: sendAmount}).then(function(txn1) {
             // Get refund vault contract instance
             return failedCrowdsaleContract.vault.call().then(function(vaultAddress) {
-              return RefundVault.at(vaultAddress).then(function(instance) {
+              return ForcedRefundVault.at(vaultAddress).then(function(instance) {
                 var failedVaultContract = instance;
-                // Check if refund vault was instantiated correctly
+                // check if refund vault was instantiated correctly
                 assert.isNotNull(instance);
-                // Finalize sale
-                return failedCrowdsaleContract.finalize().then(function(result) {
-                  var balance1 = web3.eth.getBalance(buyer);
-                  // Issue refund
-                  return failedCrowdsaleContract.claimRefund({from: buyer}).then(function(txn2) {
-                    var balance2 = web3.eth.getBalance(buyer);
-                    // Check buyer balance increases
-                    assert.isAbove(balance2, balance1);
+                // finalize sale
+                return failedCrowdsaleContract.verifyKYC(buyer).then(function() {
+                  return failedCrowdsaleContract.finalize().then(function(result) {
+                    var balance1 = web3.eth.getBalance(buyer);
+                    // issue refund
+                    return failedCrowdsaleContract.claimRefund({from: buyer}).then(function(txn2) {
+                      var balance2 = web3.eth.getBalance(buyer);
+                      // check buyer balance increases
+                      assert.isAbove(Number(balance2), Number(balance1));
+                    });
                   });
                 });
               });

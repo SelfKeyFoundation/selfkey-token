@@ -22,7 +22,7 @@ contract SelfKeyToken is MintableToken{
     */
     modifier canTransfer(address _sender, uint256 _value) {
         // Only contract owner can transfer irrestrictedly, regular holders need to wait until sale is finalized
-        require(transfersEnabled || _sender == this.owner());
+        require(transfersEnabled || _sender == owner);
         _;
     }
 

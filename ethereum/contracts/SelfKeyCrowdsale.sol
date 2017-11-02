@@ -117,16 +117,16 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(totalPurchased.add(tokens) <= SALE_CAP);
 
         // Update state
+        weiRaised = weiRaised.add(weiAmount);
+        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
+        totalPurchased = totalPurchased.add(tokens);
+
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
         } else {
             lockedBalance[beneficiary] = lockedBalance[beneficiary].add(tokens);
             lockedTotal = lockedTotal.add(tokens);
         }
-
-        weiRaised = weiRaised.add(weiAmount);
-        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
-        totalPurchased = totalPurchased.add(tokens);
 
         TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
         forwardFunds(beneficiary);
@@ -156,7 +156,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Additional finalization logic. Enables token transfers.
     */
     function finalization() internal {
-        // if goal is reached, enable token transfers and close refund vault
+        require(lockedTotal == 0);    // requires there are no pending KYC checks
+
         if (goalReached()) {
             burnUnsold();
             vault.close();
@@ -170,8 +171,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev If crowdsale is unsuccessful, investors can claim refunds.
     */
     function claimRefund() public {
-        require(isFinalized);
-        require(!goalReached());
+        // requires sale to be finalized and goal not reached, unless sender has been enabled explicitly
+        if (!vault.refundEnabled(msg.sender)) {
+            require(isFinalized);
+            require(!goalReached());
+        }
 
         vault.refund(msg.sender);
     }
@@ -207,10 +211,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         if (lockedBalance[participant] > 0) {
             uint256 tokens = lockedBalance[participant];
-            token.safeTransfer(participant, tokens);
-            lockedBalance[participant] = 0;
             lockedTotal = lockedTotal.sub(tokens);
+            lockedBalance[participant] = 0;
+            token.safeTransfer(participant, tokens);
         }
+
         VerifiedKYC(participant);
     }
 
@@ -221,14 +226,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(!kycVerified[participant]);
         kycVerified[participant] = false;
 
-        uint256 refunded = vault.forceRefund(participant);
-        uint256 tokensLocked = lockedBalance[participant];
-        weiRaised = weiRaised.sub(refunded);
-        lockedTotal = lockedTotal.sub(tokensLocked);
-        lockedBalance[participant] = 0;
-        // if token sale has finalized already, burn these tokens as well
-        if (isFinalized && goalReached()) {
-            burnUnsold();
+        if (lockedBalance[participant] > 0) {
+          uint256 tokens = lockedBalance[participant];
+          lockedTotal = lockedTotal.sub(tokens);
+          totalPurchased = totalPurchased.sub(tokens);
+          weiRaised = weiRaised.sub(vault.deposited(participant));
+          lockedBalance[participant] = 0;
+          weiContributed[participant] = 0;
+          // enable vault funds as refundable for this participant address
+          vault.enableKYCRefund(participant);
         }
 
         RejectedKYC(participant);
