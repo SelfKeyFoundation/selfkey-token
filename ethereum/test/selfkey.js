@@ -241,9 +241,10 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
 
   var presaleCrowdsale, presaleToken;
 
-  buyer = accounts[3];
+  buyer = accounts[5];
   buyer2 = accounts[4]
-  receiver = accounts[5];
+  buyer3 = accounts[3];
+  receiver = accounts[2];
 
   it("should be able to deploy in pre-sale mode", function() {
     return SelfKeyCrowdsale.new(start, end, rate, presaleRate, wallet, foundationPool, foundersPool,
@@ -260,12 +261,12 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
   });
 
   // Offchain purchases
-  it("should allow to add 'pre-commitments' for off-chain contributions with bonus", function () {
+  it("should allow to add 'pre-commitments' for off-chain contributions with bonus, no vesting", function () {
     var sendAmount = web3.toWei(1, "ether");    // approx. $12M if 1 ETH = $300
     var bonusFactor = 70;
 
     return presaleCrowdsale.weiRaised.call().then(function (value1) {
-      return presaleCrowdsale.addPrecommitment(buyer2, sendAmount, bonusFactor).then(function (result) {
+      return presaleCrowdsale.addPrecommitment(buyer2, sendAmount, bonusFactor, 0).then(function (result) {
         return presaleCrowdsale.weiRaised.call().then(function (value2) {
           // Check contribution wei has been successfully registered in the crowdsale
           assert.equal(value2 - value1, sendAmount);
@@ -273,6 +274,36 @@ contract('SelfKeyCrowdsale (Pre-sale)', function(accounts) {
           return presaleToken.balanceOf.call(buyer2).then(function (balance) {
             var newRate = rate + (rate * bonusFactor)/100;
             assert.equal(Number(balance), sendAmount * newRate);
+          });
+        });
+      });
+    });
+  });
+
+  it("should allow to add 'pre-commitments' with vesting", function () {
+    var sendAmount = web3.toWei(1, "ether");    // approx. $12M if 1 ETH = $300
+    var bonusFactor = 50;
+    var vestingMonths = 3;
+
+    return presaleCrowdsale.weiRaised.call().then(function (value1) {
+      return presaleCrowdsale.addPrecommitment(buyer3, sendAmount, bonusFactor, vestingMonths).then(function (result) {
+        return presaleCrowdsale.weiRaised.call().then(function (value2) {
+          // check contribution wei has been successfully registered in the crowdsale
+          assert.equal(value2 - value1, sendAmount);
+          // check tokens have been allocated correctly
+          return presaleToken.balanceOf.call(buyer3).then(function (balance) {
+            var newRate = rate + (rate * bonusFactor)/100;
+            var tokensAllocated = sendAmount * newRate;
+            // check half tokens are immediately transferred to participant's wallet
+            assert.equal(Number(balance), tokensAllocated / 2);
+            return presaleCrowdsale.vestedTokens.call(buyer3).then(function(timelockAddress) {
+              return presaleToken.balanceOf.call(timelockAddress).then(function(vestedBalance) {
+                // check the other half is sent to the time-lock
+                assert.equal(vestedBalance, tokensAllocated - (tokensAllocated / 2));
+                // THE FOLLOWING SHOULD FAIL SINCE TOKENS ARE STILL LOCKED
+                //return presaleCrowdsale.releaseLock(buyer3);
+              });
+            });
           });
         });
       });

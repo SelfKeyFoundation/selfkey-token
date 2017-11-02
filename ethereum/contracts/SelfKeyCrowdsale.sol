@@ -34,6 +34,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     mapping(address => uint256) public lockedBalance;
     mapping(address => uint256) public weiContributed;
 
+    mapping(address => address) public vestedTokens;
+
     bool public isFinalized = false;
 
     // Initial distribution addresses
@@ -197,10 +199,19 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev Release time-locked tokens
+    * @dev Release Founders' time-locked tokens
     */
     function releaseLockFounders() public {
         timelockFounders.release();
+    }
+
+    /**
+    * @dev Release time-locked tokens for pre-commitment participants
+    */
+    function releaseLock(address participant) public {
+        require(vestedTokens[participant] != 0x0);
+        TokenTimelock timelock = TokenTimelock(vestedTokens[participant]);
+        timelock.release();
     }
 
     /**
@@ -244,9 +255,12 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     * @dev Adds an address for pre-sale commitments made off-chain.
     * Contribution = 0 is valid, to just whitelist the address as KYC-verified.
     */
-    function addPrecommitment(address beneficiary, uint256 weiContribution, uint256 bonusFactor) onlyOwner public {
+    function addPrecommitment(address beneficiary, uint256 weiContribution, uint256 bonusFactor, uint64 vestingPeriod) onlyOwner public {
         require(now < startTime);   // requires to be on pre-sale
         require(!isFinalized);      // requires unfinalized state (in case owner finalizes before startTime)
+        require(bonusFactor >= 0);
+        require(vestingPeriod >= 0);
+
         kycVerified[beneficiary] = true;
 
         if (weiContribution > 0) {
@@ -258,8 +272,19 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
             weiRaised = weiRaised.add(weiContribution);
             weiContributed[beneficiary] = weiContributed[beneficiary].add(weiContribution);
-            token.safeTransfer(beneficiary, tokens);
             totalPurchased = totalPurchased.add(tokens);
+
+            if (vestingPeriod == 0) {
+                token.safeTransfer(beneficiary, tokens);
+            } else {
+                uint64 vestingDays = vestingPeriod * 30;  // 1 month = 30 days
+                uint256 half = tokens.div(2);
+                TokenTimelock timelock = new TokenTimelock(token, beneficiary, uint64(startTime + vestingDays));
+                vestedTokens[beneficiary] = address(timelock);
+                token.safeTransfer(beneficiary, half);
+                token.safeTransfer(timelock, tokens.sub(half));
+            }
+
             AddedPrecommitment(beneficiary, weiContribution, bonusFactor, newRate);
         }
     }
