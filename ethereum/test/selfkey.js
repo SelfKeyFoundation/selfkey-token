@@ -1,7 +1,7 @@
 var SelfKeyCrowdsale = artifacts.require("./SelfKeyCrowdsale.sol");
 var SelfKeyToken = artifacts.require("./SelfKeyToken.sol");
 var TokenTimelock = artifacts.require("zeppelin-solidity/contracts/token/TokenTimelock.sol");
-var ForcedRefundVault = artifacts.require("./ForcedRefundVault.sol");
+var KYCRefundVault = artifacts.require("./KYCRefundVault.sol");
 
 var crowdsaleContract, tokenContract, timelockFoundersContract, vaultContract, buyer, receiver;
 
@@ -53,7 +53,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
 
   it("should have created Refund Vault successfully", function() {
     return crowdsaleContract.vault.call().then(function(vaultAddress) {
-      return ForcedRefundVault.at(vaultAddress).then(function(instance) {
+      return KYCRefundVault.at(vaultAddress).then(function(instance) {
         vaultContract = instance;
         assert.isNotNull(instance);
       });
@@ -131,7 +131,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
     assert.isOk(true);
   });
 
-  it("should allow forced refund for KYC-failed participants", function() {
+  it("should allow refund for KYC-failed participants", function() {
     var sendAmount = web3.toWei(1, "ether");
     var balance1 = web3.eth.getBalance(buyer2);
     // send ETH to crowdsale contract for buying KEY
@@ -200,7 +200,7 @@ contract('SelfKeyCrowdsale', function(accounts) {
           return failedCrowdsaleContract.sendTransaction({from: buyer, value: sendAmount}).then(function(txn1) {
             // Get refund vault contract instance
             return failedCrowdsaleContract.vault.call().then(function(vaultAddress) {
-              return ForcedRefundVault.at(vaultAddress).then(function(instance) {
+              return KYCRefundVault.at(vaultAddress).then(function(instance) {
                 var failedVaultContract = instance;
                 // check if refund vault was instantiated correctly
                 assert.isNotNull(instance);

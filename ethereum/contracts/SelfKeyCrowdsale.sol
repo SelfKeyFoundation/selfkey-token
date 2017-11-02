@@ -2,7 +2,7 @@ pragma solidity ^0.4.15;
 
 import './SelfKeyToken.sol';
 import './CrowdsaleConfig.sol';
-import './ForcedRefundVault.sol';
+import './KYCRefundVault.sol';
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
@@ -45,7 +45,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     TokenTimelock public timelockFounders;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding.
-    ForcedRefundVault public vault;
+    KYCRefundVault public vault;
 
     // Crowdsale events
     event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
@@ -75,7 +75,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         wallet = _wallet;
         goal = _goal;
 
-        vault = new ForcedRefundVault(wallet);
+        vault = new KYCRefundVault(wallet);
 
         foundationPool = _foundationPool;
         foundersPool = _foundersPool;
