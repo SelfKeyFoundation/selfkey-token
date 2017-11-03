@@ -90,16 +90,16 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-    * @dev Fallback function can be used to buy tokens
+    * @dev Fallback function is used to buy tokens. It's the only entry point since `buyTokens` is internal
     */
     function () payable {
         buyTokens(msg.sender);
     }
 
     /**
-    * @dev Low level token purchase.
+    * @dev Low level token purchase. Only callable internally.
     */
-    function buyTokens(address beneficiary) public payable {
+    function buyTokens(address beneficiary) internal {
         require(beneficiary != 0x0);
         require(!isFinalized);
         require(validPurchase(beneficiary));
