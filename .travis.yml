@@ -1,0 +1,22 @@
+dist: trusty
+
+language: node_js
+
+node_js:
+  - "9.2.0"
+
+install:
+  - npm install -g truffle
+  - npm install
+  - npm run testrpc &
+  - truffle version
+
+cache:
+  directories:
+    - node_modules
+
+script:
+  - npm run test:cov
+
+# notifications:
+#   slack: to be filled in
