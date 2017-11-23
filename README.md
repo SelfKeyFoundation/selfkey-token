@@ -2,8 +2,8 @@
 
 An `ERC20` token used to fuel a wide range of KYC related dapps
 
-* `develop` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=develop)](https://travis-ci.org/SelfKeyFoundation/selfkey-token)
-* `master` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=master)](https://travis-ci.org/SelfKeyFoundation/selfkey-token)
+* `develop` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=develop)](https://travis-ci.org/SelfKeyFoundation/selfkey-token) [![codecov](https://codecov.io/gh/SelfKeyFoundation/selfkey-token/branch/develop/graph/badge.svg)](https://codecov.io/gh/SelfKeyFoundation/selfkey-token)
+* `master` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=master)](https://travis-ci.org/SelfKeyFoundation/selfkey-token) [![codecov](https://codecov.io/gh/SelfKeyFoundation/selfkey-token/branch/master/graph/badge.svg)](https://codecov.io/gh/SelfKeyFoundation/selfkey-token)
 
 ## About
 
