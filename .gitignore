@@ -1,17 +1,43 @@
 # Logs
 logs
 *.log
+npm-debug.log*
 
-# Directories used by tools like mocha & istanbul
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
 coverage
-shippable
 
-# Dependency directory
-node_modules
+# nyc test coverage
+.nyc_output
 
-# Generated files
-config/development/contracts.json
-config/development/*.sol.js
-config/test/contracts.json
+# node-waf configuration
+.lock-wscript
+
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# dotenv environment variables file
+.env
+
+# built artifacts
 build
-dist
+coverage
+coverage.json

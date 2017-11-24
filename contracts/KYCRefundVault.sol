@@ -1,11 +1,13 @@
-pragma solidity ^0.4.15;
+pragma solidity ^0.4.18;
 
 import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 
+
 /**
-* @title KYCRefundVault
-* @dev RefundVault for refunding on KYC fail cases, regardless of refunds being "enabled" or not.
-*/
+ * @title KYCRefundVault
+ * @dev RefundVault for refunding on KYC fail cases,
+ *      regardless of refunds being "enabled" or not.
+ */
 contract KYCRefundVault is RefundVault {
     using SafeMath for uint256;
 
@@ -17,16 +19,16 @@ contract KYCRefundVault is RefundVault {
 
     /**
      * @dev ForcedRefundVault contract constructor
+     * @param _wallet — what's this do?
      */
-    function KYCRefundVault(address _wallet)
-        RefundVault(_wallet) {
-    }
+    // solhint-disable-next-line no-empty-blocks
+    function KYCRefundVault(address _wallet) public RefundVault(_wallet) {}
 
     /**
     * @dev Enables a particular address to be able to claim a refund
-    * This method should be called on KYC rejection
+    *      This function is called on KYC rejection
     */
-    function enableKYCRefund(address investor) onlyOwner public {
+    function enableKYCRefund(address investor) public onlyOwner {
         refundEnabled[investor] = true;
         toRefund[investor] = toRefund[investor].add(deposited[investor]);
         refundableTotal = refundableTotal.add(deposited[investor]);
@@ -35,8 +37,10 @@ contract KYCRefundVault is RefundVault {
     }
 
     /**
-    * @dev Overrides RefundVault.refund method for allowing enabled (KYC-rejected) participants to claim a refund
-    */
+     * @dev Overrides RefundVault.refund function
+     *      allowing enabled (KYC-rejected) participants to claim a refund
+     * @param investor — An investor to be refunded.
+     */
     function refund(address investor) public {
         require(state == State.Refunding || refundEnabled[investor]);
 
@@ -56,9 +60,10 @@ contract KYCRefundVault is RefundVault {
     }
 
     /**
-    * @dev Overrides RefundVault.close method for taking into account ETH still held for KYC refunds
-    */
-    function close() onlyOwner public {
+     * @dev Overrides RefundVault.close function
+     *      to take into account ETH still held for KYC refunds
+     */
+    function close() public onlyOwner {
         require(state == State.Active);
         state = State.Closed;
         Closed();
