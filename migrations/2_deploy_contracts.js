@@ -2,12 +2,15 @@ const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 
 module.exports = (deployer, network, accounts) => {
   const now = new Date().getTime() / 1000
+
+  // Test dates. Change to real dates before launch
+
   const startTime = now + 172800 // Two days after current time
   // const startTime = 1507939200 // 14 October 2017 @ 12:00am (UTC)
   const endTime = startTime + 604800 // One week after startTime
-  const rate = 20000 // approximately $0.015 per KEY
-  const presaleRate = 30000 // approximately $0.01 per KEY
-  const goal = 8333333333333000000000 // approximatelly $2.5Million in wei
+  const rate = 30000 // approximately $0.015 per KEY at 1 ETH = $450
+  const presaleRate = 45000 // approximately $0.01 per KEY at 1 ETH = $450
+  const goal = 13200000000000000000000 // approx. $5,940,000 at 1 ETH = $450
 
   let foundationPool
   let foundersPool
