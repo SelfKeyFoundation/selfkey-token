@@ -1,9 +1,5 @@
 # How to contribute to this project
 
-## Development Environment
-
-All development is assumed to be done on a Mac running a modern version of OS X but ought to be pretty much the same no matter what unixy environment you use.
-
 ## Development Process
 
 All development is to follow the [standard git-flow](http://nvie.com/posts/a-successful-git-branching-model/) process, modified to allow for code-reviews.
@@ -56,7 +52,7 @@ It's basically the same process but use the word `hotfix` or `support` instead o
 4. Now go back to GitHub and raise a Pull Request to merge the upstream master from your fork's `master` branch. When that goes through you are done.
 5. In your command-line go back and clean up any outstanding branches and `git pull upstream` your local `master` and `develop` branches to ensure everything on your local machine is up to date with everyone's changes.
 
-Note you will **never** push changes directly to the upstream project, *only to your own fork*. 
+Note you will **never** push changes directly to the upstream project, *only to your own fork*.
 
 **Changes may only be introduced into the upstream project via a properly reviewed pull request.**
 
