@@ -1,6 +1,6 @@
 {
   "name": "selfkey-token",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "The SelfKey Token is an ERC20 standard token that is used to fuel the SelfKey KYC dapps",
   "main": "truffle.js",
   "directories": {
@@ -9,8 +9,8 @@
     "contracts": "contracts"
   },
   "engines": {
-    "node": ">=9.2.0",
-    "npm": ">=5"
+    "node": "9.2.0",
+    "npm": "5.5.1"
   },
   "dependencies": {
     "bip39": "^2.4.0",
@@ -32,7 +32,7 @@
     "testrpc": "ganache-cli --port 8545 --unlock 0",
     "test": "truffle test",
     "test:cov": "solidity-coverage",
-    "lint:sol": "solhint contracts/**/*.sol",
+    "lint:sol": "solhint ./**/*.sol",
     "lint:js": "eslint .",
     "deploy:ropsten": "truffle migrate --network ropsten"
   },
