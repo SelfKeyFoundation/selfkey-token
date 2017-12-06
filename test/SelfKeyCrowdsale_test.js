@@ -3,12 +3,16 @@ const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/TokenTimelock.sol')
 const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 
+const assertThrows = require('./utils/assertThrows')
 const { rate, presaleRate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
   const end = start + 31622400 // 1 year from start
+
+  const PURCHASE_MIN_CAP_WEI = 222222222000000000
+  const PURCHASE_MAX_CAP_WEI = 33333333333000000000
 
   const [
     legalExpensesWallet,
@@ -96,26 +100,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await crowdsaleContract.verifyKYC(buyer)
       const anotherNewBalance = await tokenContract.balanceOf.call(buyer)
       assert.equal(Number(anotherNewBalance), sendAmount * rate)
-      // THIS SHOULD FAIL SINCE TRANSFERS HAVEN'T BEEN ENABLED YET
-      // return tokenContract.transfer(receiver, 5 ,{from: buyer});
-    })
-
-    // TODO: implement test
-    xit('does not allow contributions below minimum purchase cap', async () => {
-      const sendAmount = 333333333000000000 - 50
-      const result = await crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })
-      // assert.fails(result)
-    })
-
-    xit('does not allow contributions above maximum purchase cap', async () => {
-      const sendAmount = 50000000000000000000 + 5000
-      const result = await crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })
-      assert.fails(result)
+      assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
     })
 
     it('allows refund for KYC-failed participants', async () => {
       const sendAmount = web3.toWei(1, 'ether')
-      const balance1 = web3.eth.getBalance(buyer2)
+      // const balance1 = web3.eth.getBalance(buyer2)
       // send ETH to crowdsale contract for buying KEY
       await crowdsaleContract.sendTransaction({ from: buyer2, value: sendAmount })
       const balance2 = web3.eth.getBalance(buyer2)
@@ -135,19 +125,31 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isAbove(Number(balance3), Number(balance2))
     })
 
+    // For some reason if I unpending this then many other tests fail.
+    xit('does not allow contributions below minimum purchase cap', async () => {
+      const sendAmount = PURCHASE_MIN_CAP_WEI - 1
+      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+    })
+
+    // For some reason if I unpending this then many other tests fail.
+    xit('does not allow contributions above maximum purchase cap', async () => {
+      const sendAmount = PURCHASE_MAX_CAP_WEI + 1
+      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+    })
+
     it('can finalize token sale', async () => {
       const sendAmount = web3.toWei(1, 'ether')
-      // THIS SHOULD FAILS SINCE SALE IS NOT FINALIZED YET
-      // tokenContract.transfer(receiver, sendAmount, {from: buyer}).then(function() {
-      //  tokenContract.balanceOf.call(receiver).then(function(balance) {
-      //    assert.equal(sendAmount, balance);
-      //  });
-      // });
 
+      // Sale has not been finalised yet
+      assertThrows(tokenContract.transfer(receiver, sendAmount, { from: buyer }))
+      const sadBalance = await tokenContract.balanceOf.call(receiver)
+      assert.equal(sadBalance.toNumber(), 0)
+
+      // now finalise it.
       await crowdsaleContract.finalize()
-      const balance = await tokenContract.balanceOf.call(crowdsaleContract.address)
+      const happyBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
       // check unsold tokens were effectively burned
-      assert.equal(balance, 0)
+      assert.equal(happyBalance, 0)
       // check tokens are now transferrable
       await tokenContract.transfer(receiver, sendAmount, { from: buyer })
       const newBalance = await tokenContract.balanceOf.call(receiver)

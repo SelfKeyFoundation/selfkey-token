@@ -1,6 +1,7 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
+const assertThrows = require('./utils/assertThrows')
 const { rate, presaleRate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
@@ -82,9 +83,16 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   // Public pre-sale
   it('receives ETH and allocate due tokens for kyc-verified addresses', async () => {
     const sendAmount = web3.toWei(1, 'ether')
-    const walletBalance = web3.eth.getBalance(wallet)
-    // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED (KYC-VERIFIED) YET
-    // await presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999})
+    // const walletBalance = web3.eth.getBalance(wallet)
+
+    // Participant is not KYC verified yet
+    assertThrows(presaleCrowdsale.sendTransaction({
+      from: buyer,
+      value: sendAmount,
+      gas: 999999
+    }))
+
+    // now verify them.
     await presaleCrowdsale.verifyKYC(buyer)
     await presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount })
     const balance = await presaleToken.balanceOf.call(buyer)
