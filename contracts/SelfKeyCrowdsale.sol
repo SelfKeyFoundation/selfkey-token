@@ -294,10 +294,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function buyTokens(address beneficiary) internal {
         require(beneficiary != 0x0);
         require(!isFinalized);
-        require(validPurchase(beneficiary));
-        require(msg.value != 0);
-
         uint256 weiAmount = msg.value;
+        require(weiAmount != 0);
+        require(validPurchase(beneficiary));
+
         // Calculate the token amount to be allocated
         uint256 tokens = weiAmount.mul(rate);
 
@@ -369,9 +369,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     /**
      * @dev Returns true if purchase is made during valid period
-     *      and contribution is above between caps
+     *      and contribution is between purchase caps
+     *
+     * @param beneficiary — The address buying the tokens.
      */
-    function validPurchase(address beneficiary) internal constant returns (bool) {
+    function validPurchase(address beneficiary) internal view returns (bool) {
         bool withinPeriod = now <= endTime; // solhint-disable-line not-rely-on-time
         uint256 amount = weiContributed[beneficiary];
         bool aboveMinPurchaseCap = amount.add(msg.value) >= PURCHASE_MIN_CAP_WEI;
