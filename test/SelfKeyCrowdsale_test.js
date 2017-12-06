@@ -6,8 +6,10 @@ const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 const { rate, presaleRate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale', (accounts) => {
-  const start = 1506556800 // 2017-09-28 @ 12:00am UTC,
-  const end = 1512086400 // 2017-12-01 @ 12:00am UTC
+  const now = (new Date()).getTime() / 1000
+  const start = now
+  const end = start + 31622400 // 1 year from start
+
   const [
     legalExpensesWallet,
     foundersPool,
