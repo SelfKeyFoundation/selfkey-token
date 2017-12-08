@@ -5,9 +5,10 @@ const assertThrows = require('./utils/assertThrows')
 const { rate, presaleRate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
+  const YEAR_IN_SECONDS = 31622400
   const now = (new Date()).getTime() / 1000
-  const start = now + 31622400 // 1 year from now
-  const end = start + 31622400 // 1 year from start
+  const start = now + YEAR_IN_SECONDS
+  const end = start + YEAR_IN_SECONDS
 
   const [
     legalExpensesWallet,
@@ -86,7 +87,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     // const walletBalance = web3.eth.getBalance(wallet)
 
     // Participant is not KYC verified yet
-    assertThrows(presaleCrowdsale.sendTransaction({
+    await assertThrows(presaleCrowdsale.sendTransaction({
       from: buyer,
       value: sendAmount,
       gas: 999999

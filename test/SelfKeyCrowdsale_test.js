@@ -6,13 +6,14 @@ const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 const assertThrows = require('./utils/assertThrows')
 const { rate, presaleRate, goal } = require('./utils/common')
 
-contract('SelfKeyCrowdsale', (accounts) => {
+contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
   const end = start + 31622400 // 1 year from start
 
   const PURCHASE_MIN_CAP_WEI = 222222222000000000
   const PURCHASE_MAX_CAP_WEI = 33333333333000000000
+  const SIGNIFICANT_AMOUNT = 2048
 
   const [
     legalExpensesWallet,
@@ -125,16 +126,20 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isAbove(Number(balance3), Number(balance2))
     })
 
-    // For some reason if I unpending this then many other tests fail.
-    xit('does not allow contributions below minimum purchase cap', async () => {
-      const sendAmount = PURCHASE_MIN_CAP_WEI - 1
-      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+    context('contributions below minimum purchase cap', () => {
+      const sendAmount = PURCHASE_MIN_CAP_WEI - SIGNIFICANT_AMOUNT
+      it('are not allowed', () =>
+        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+      )
     })
 
-    // For some reason if I unpending this then many other tests fail.
-    xit('does not allow contributions above maximum purchase cap', async () => {
-      const sendAmount = PURCHASE_MAX_CAP_WEI + 1
-      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+    context('contributions above maximum purchase cap', () => {
+      const sendAmount = PURCHASE_MAX_CAP_WEI + SIGNIFICANT_AMOUNT
+      console.log('sendAmount', sendAmount)
+
+      it('are not allowed', () =>
+        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+      )
     })
 
     it('can finalize token sale', async () => {
