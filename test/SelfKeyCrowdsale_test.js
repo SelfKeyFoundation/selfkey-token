@@ -101,7 +101,7 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
       await crowdsaleContract.verifyKYC(buyer)
       const anotherNewBalance = await tokenContract.balanceOf.call(buyer)
       assert.equal(Number(anotherNewBalance), sendAmount * rate)
-      assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
+      await assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
     })
 
     it('allows refund for KYC-failed participants', async () => {
@@ -129,8 +129,7 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
     context('contributions below minimum purchase cap', () => {
       const sendAmount = PURCHASE_MIN_CAP_WEI - SIGNIFICANT_AMOUNT
       it('are not allowed', () =>
-        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
-      )
+        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })))
     })
 
     context('contributions above maximum purchase cap', () => {
@@ -138,15 +137,14 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
       console.log('sendAmount', sendAmount)
 
       it('are not allowed', () =>
-        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
-      )
+        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })))
     })
 
     it('can finalize token sale', async () => {
       const sendAmount = web3.toWei(1, 'ether')
 
       // Sale has not been finalised yet
-      assertThrows(tokenContract.transfer(receiver, sendAmount, { from: buyer }))
+      await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: buyer }))
       const sadBalance = await tokenContract.balanceOf.call(receiver)
       assert.equal(sadBalance.toNumber(), 0)
 
