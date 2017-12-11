@@ -46,11 +46,7 @@ as well as other truffle commands. See [truffleframework.com](http://trufflefram
 
 #### Standalone
 
-In one terminal run
-
-    npm run testrpc
-
-Then in another run
+Run
 
     npm test
 
