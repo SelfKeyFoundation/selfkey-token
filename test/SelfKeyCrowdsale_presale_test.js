@@ -77,15 +77,12 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const vestedBalance = await presaleToken.balanceOf.call(timelockAddress)
     // check the other half is sent to the time-lock
     assert.equal(vestedBalance, tokensAllocated - (tokensAllocated / 2))
-    // THE FOLLOWING SHOULD FAIL SINCE TOKENS ARE STILL LOCKED
-    // return presaleCrowdsale.releaseLock(buyer3);
+    await assertThrows(presaleCrowdsale.releaseLock(buyer3))
   })
 
   // Public pre-sale
   it('receives ETH and allocate due tokens for kyc-verified addresses', async () => {
     const sendAmount = web3.toWei(1, 'ether')
-    // const walletBalance = web3.eth.getBalance(wallet)
-
     // Participant is not KYC verified yet
     await assertThrows(presaleCrowdsale.sendTransaction({
       from: buyer,
@@ -98,5 +95,13 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount })
     const balance = await presaleToken.balanceOf.call(buyer)
     assert.equal(Number(balance), presaleRate * sendAmount)
+  })
+
+  // TODO: not sure what I am actually testing here.  Discuss with Carlos.
+  xit('releases the founders\' locked tokens', async () => {
+    await presaleCrowdsale.releaseLockFounders.call()
+    const timelockAddress = await presaleCrowdsale.vestedTokens.call(buyer3)
+    const vestedBalance = await presaleToken.balanceOf.call(timelockAddress)
+    console.log('vestedBalance', vestedBalance)
   })
 })
