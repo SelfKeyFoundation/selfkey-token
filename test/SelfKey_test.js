@@ -25,7 +25,7 @@ contract('SelfKeyToken', (accounts) => {
     crowdsaleContract = await SelfKeyCrowdsale.new(
       start,
       end,
-      rate,
+      1,
       presaleRate,
       wallet,
       foundationPool,
@@ -39,23 +39,25 @@ contract('SelfKeyToken', (accounts) => {
   })
 
   context('transferFrom', () => {
+    const sendAmount = web3.toWei(2, 'ether')
+    const swapAmount = 500000
+
     before(async () => {
-      const sendAmount = web3.toWei(2, 'ether')
+      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
       await crowdsaleContract.verifyKYC(buyer)
       await crowdsaleContract.verifyKYC(buyer2)
-      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
-      await tokenContract.enableTransfers.call({ from: owner })
-      await tokenContract.approve.call(buyer2, 100, { from: buyer })
+      await crowdsaleContract.finalize()
+      await tokenContract.approve(buyer2, swapAmount * 2, { from: buyer })
     })
 
-    xit('transfers just fine', async () => {
+    it('transfers just fine', async () => {
       const balance1before = await tokenContract.balanceOf.call(buyer)
       const balance2before = await tokenContract.balanceOf.call(buyer2)
-      await tokenContract.transferFrom.call(buyer, buyer2, 100, { from: buyer2 })
+      await tokenContract.transferFrom(buyer, buyer2, swapAmount, { from: buyer2 })
       const balance1after = await tokenContract.balanceOf.call(buyer)
       const balance2after = await tokenContract.balanceOf.call(buyer2)
-      assert.equal(balance1before - balance1after, 1)
-      assert.equal(balance2after - balance2before, 1)
+      assert.equal(balance1before.minus(balance1after), swapAmount)
+      assert.equal(balance2after.minus(balance2before), swapAmount)
     })
   })
 })

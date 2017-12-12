@@ -99,7 +99,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
 
   // TODO: not sure what I am actually testing here.  Discuss with Carlos.
   xit('releases the founders\' locked tokens', async () => {
-    await presaleCrowdsale.releaseLockFounders.call()
+    await presaleCrowdsale.releaseLockFounders()
     const timelockAddress = await presaleCrowdsale.vestedTokens.call(buyer3)
     const vestedBalance = await presaleToken.balanceOf.call(timelockAddress)
     console.log('vestedBalance', vestedBalance)
