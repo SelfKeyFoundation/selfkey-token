@@ -1,7 +1,7 @@
 const deployer = require('./deployer')
 
 const {
-  name: package_name,
+  name: packageName,
   version,
   description,
   keywords,
@@ -20,7 +20,7 @@ const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
 const { addresses, engine } = deployer(walletPath, providerUrl)
 
 module.exports = {
-  package_name,
+  packageName,
   version,
   description,
   keywords,
@@ -30,8 +30,6 @@ module.exports = {
     'Dave Sag <david.sag@industrie.co>'
   ],
   networks: {
-    development: DEFAULT,
-    test: DEFAULT,
     geth: { ...DEFAULT, gas: 999999 },
     ropsten: {
       network_id: 3,

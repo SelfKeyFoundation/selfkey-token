@@ -134,7 +134,6 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
 
     context('contributions above maximum purchase cap', () => {
       const sendAmount = PURCHASE_MAX_CAP_WEI + SIGNIFICANT_AMOUNT
-      console.log('sendAmount', sendAmount)
 
       it('are not allowed', () =>
         assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })))

@@ -16,20 +16,18 @@
     "bip39": "^2.4.0",
     "ethereumjs-wallet": "^0.6.0",
     "web3": "1.0.0-beta.26",
-    "web3-provider-engine": "^13.3.3",
+    "web3-provider-engine": "^13.3.4",
     "zeppelin-solidity": "^1.4.0"
   },
   "devDependencies": {
-    "eslint": "^4.12.0",
+    "eslint": "^4.13.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
     "faker": "^4.1.0",
-    "ganache-cli": "^6.0.3",
     "solhint": "^1.1.8",
-    "solidity-coverage": "^0.4.2"
+    "solidity-coverage": "^0.4.3"
   },
   "scripts": {
-    "testrpc": "ganache-cli --port 8545 --unlock 0",
     "test": "truffle test",
     "test:cov": "solidity-coverage",
     "lint:sol": "solhint ./**/*.sol",
