@@ -25,7 +25,7 @@ contract('SelfKeyToken', (accounts) => {
     crowdsaleContract = await SelfKeyCrowdsale.new(
       start,
       end,
-      1,
+      rate,
       presaleRate,
       wallet,
       foundationPool,
