@@ -97,11 +97,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     assert.equal(Number(balance), presaleRate * sendAmount)
   })
 
-  // TODO: not sure what I am actually testing here.  Discuss with Carlos.
-  xit('releases the founders\' locked tokens', async () => {
-    await presaleCrowdsale.releaseLockFounders()
-    const timelockAddress = await presaleCrowdsale.vestedTokens.call(buyer3)
-    const vestedBalance = await presaleToken.balanceOf.call(timelockAddress)
-    console.log('vestedBalance', vestedBalance)
+  it('does not release the founders\' locked tokens too soon', async () => {
+    await assertThrows(presaleCrowdsale.releaseLockFounders())
   })
 })
