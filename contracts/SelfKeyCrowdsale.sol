@@ -246,11 +246,28 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function finalize() public onlyOwner {
         require(!isFinalized);
 
+        clearPendingKYC();
         finalization();
         Finalized();
 
         isFinalized = true;
     }
+
+    /**
+     * @dev Additional finalization logic. Enables token transfers.
+     */
+    function finalization() internal {
+        require(lockedTotal == 0); // requires there are no pending KYC checks
+
+        if (goalReached()) {
+            burnUnsold();
+            vault.close();
+            token.enableTransfers();
+        } else {
+            vault.enableRefunds();
+        }
+    }
+
 
     /**
      * @dev If crowdsale is unsuccessful, investors can claim refunds.
@@ -409,22 +426,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function forwardFunds(address beneficiary) internal {
         vault.deposit.value(msg.value)(beneficiary); // Store funds in "refund vault"
-    }
-
-    /**
-     * @dev Additional finalization logic. Enables token transfers.
-     */
-    function finalization() internal {
-        require(lockedTotal == 0); // requires there are no pending KYC checks
-
-        if (goalReached()) {
-            clearPendingKYC();
-            burnUnsold();
-            vault.close();
-            token.enableTransfers();
-        } else {
-            vault.enableRefunds();
-        }
     }
 
     /**
