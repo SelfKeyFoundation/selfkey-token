@@ -241,9 +241,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('should allow finalization', async () => {
+      let weiRaised = await crowdsaleContract.weiRaised.call()
       await crowdsaleContract.finalize()
       let finalized = await crowdsaleContract.isFinalized.call()
       assert.isTrue(finalized)
+      let weiRaised2 = await crowdsaleContract.weiRaised.call()
+      assert.isBelow(weiRaised2, weiRaised)
     })
 
     it('should properly reset all locked token balances', async () => {
