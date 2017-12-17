@@ -49,10 +49,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     mapping(address => uint256) public weiContributed;
 
     // an array for keeping track of all addresses still pending for KYC verification
-    address[] internal lockedAddress;
+    address[] private lockedAddress;
 
     // a mapping to retrieve the index of an address in lockedAddress arrray
-    mapping(address => uint256) internal lockedIndex;
+    mapping(address => uint256) private lockedIndex;
 
     // a mapping of dynamically instantiated token timelocks for each pre-commitment beneficiary
     mapping(address => address) public vestedTokens;
