@@ -6,7 +6,7 @@ const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 const assertThrows = require('./utils/assertThrows')
 const { rate, presaleRate, goal } = require('./utils/common')
 
-contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
+contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
   const end = start + 31622400 // 1 year from start
@@ -144,14 +144,14 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
 
       // Sale has not been finalised yet
       await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: buyer }))
-      const sadBalance = await tokenContract.balanceOf.call(receiver)
-      assert.equal(sadBalance.toNumber(), 0)
+      const receiverBalance = await tokenContract.balanceOf.call(receiver)
+      assert.equal(receiverBalance.toNumber(), 0)
 
       // now finalise it.
       await crowdsaleContract.finalize()
-      const happyBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
+      const contractBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
       // check unsold tokens were effectively burned
-      assert.equal(happyBalance, 0)
+      assert.equal(contractBalance, 0)
       // check tokens are now transferrable
       await tokenContract.transfer(receiver, sendAmount, { from: buyer })
       const newBalance = await tokenContract.balanceOf.call(receiver)
@@ -159,7 +159,7 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
     })
   })
 
-  context('crowdsale whose goal hasn\'t been reached', () => {
+  context('Crowdsale whose goal hasn\'t been reached', () => {
     const hugeGoal = 3333333333333333333333
     const sendAmount = web3.toWei(3, 'ether')
 
@@ -202,6 +202,69 @@ contract('SelfKeyCrowdsale Unhappy Path', (accounts) => {
       const balance2 = web3.eth.getBalance(buyer)
       // check buyer balance increases
       assert.isAbove(Number(balance2), Number(balance1))
+    })
+  })
+
+  context('Crowdsale with pending KYC cases at finalization time', () => {
+    let preBalance1
+    let preBalance2
+
+    before(async () => {
+      crowdsaleContract = await SelfKeyCrowdsale.new(
+        start,
+        end,
+        rate,
+        presaleRate,
+        wallet,
+        foundationPool,
+        foundersPool,
+        legalExpensesWallet,
+        goal
+      )
+
+      const token = await crowdsaleContract.token.call()
+      const sendAmount = web3.toWei(3, 'ether')
+      tokenContract = await SelfKeyToken.at(token)
+
+      // Purchase tokens from 3 different buyers
+      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
+      await crowdsaleContract.sendTransaction({ from: buyer2, value: sendAmount })
+      await crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })
+
+      preBalance1 = web3.eth.getBalance(buyer2)
+      preBalance2 = web3.eth.getBalance(buyer3)
+
+      // Verify 1 buyer only
+      await crowdsaleContract.verifyKYC(buyer)
+      let verified = await crowdsaleContract.kycVerified.call(buyer)
+      assert.isTrue(verified)
+    })
+
+    it('should allow finalization', async () => {
+      let weiRaised = await crowdsaleContract.weiRaised.call()
+      await crowdsaleContract.finalize()
+      let finalized = await crowdsaleContract.isFinalized.call()
+      assert.isTrue(finalized)
+      let weiRaised2 = await crowdsaleContract.weiRaised.call()
+      assert.isBelow(weiRaised2, weiRaised)
+    })
+
+    it('should properly reset all locked token balances', async () => {
+      let lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+      let lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
+      assert.equal(lockedBalance, 0)
+      assert.equal(lockedBalance2, 0)
+    })
+
+    it('should enable refunds for unverified participants', async () => {
+      await crowdsaleContract.claimRefund({ from: buyer2 })
+      await crowdsaleContract.claimRefund({ from: buyer3 })
+
+      const afterBalance1 = web3.eth.getBalance(buyer2)
+      const afterBalance2 = web3.eth.getBalance(buyer3)
+
+      assert.isAbove(Number(afterBalance1), Number(preBalance1))
+      assert.isAbove(Number(afterBalance2), Number(preBalance2))
     })
   })
 })
