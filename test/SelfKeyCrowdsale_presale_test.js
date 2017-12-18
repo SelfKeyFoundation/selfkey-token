@@ -100,4 +100,46 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   it('does not release the founders\' locked tokens too soon', async () => {
     await assertThrows(presaleCrowdsale.releaseLockFounders())
   })
+
+  it('does not allow end date to be earlier or the same than start date', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(
+      start,
+      start,
+      rate,
+      presaleRate,
+      wallet,
+      foundationPool,
+      foundersPool,
+      legalExpensesWallet,
+      goal
+    ))
+  })
+
+  it('does not allow rate to be 0', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(
+      start,
+      end,
+      0,
+      presaleRate,
+      wallet,
+      foundationPool,
+      foundersPool,
+      legalExpensesWallet,
+      goal
+    ))
+  })
+
+  it('does not allow empty wallet address', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(
+      start,
+      end,
+      rate,
+      presaleRate,
+      0x0,
+      foundationPool,
+      foundersPool,
+      legalExpensesWallet,
+      goal
+    ))
+  })
 })
