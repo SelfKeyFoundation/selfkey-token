@@ -52,7 +52,7 @@ Run
 
 To generate code coverage reports run
 
-    npm test:cov
+    npm run test:cov
 
 *Note* Generating code coverage reports takes a lot longer to run than just running the tests.
 
