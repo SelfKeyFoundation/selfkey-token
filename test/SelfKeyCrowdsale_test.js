@@ -266,5 +266,15 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isAbove(Number(afterBalance1), Number(preBalance1))
       assert.isAbove(Number(afterBalance2), Number(preBalance2))
     })
+
+    it('does not allow finalize to be re-invoked', async () => {
+      try {
+        await crowdsaleContract.finalize()
+        await crowdsaleContract.finalize()
+        assert.fail()
+      } catch (error) {
+        assertThrows(error)
+      }
+    })
   })
 })
