@@ -240,6 +240,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isTrue(verified)
     })
 
+    it('should not allow refund before finalization', async () => {
+      await assertThrows(crowdsaleContract.claimRefund({ from: buyer2 }))
+    })
+
     it('should allow finalization', async () => {
       let weiRaised = await crowdsaleContract.weiRaised.call()
       await crowdsaleContract.finalize()
