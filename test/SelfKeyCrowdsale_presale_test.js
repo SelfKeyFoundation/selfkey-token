@@ -101,6 +101,10 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseLockFounders())
   })
 
+  it('does not allow locked token releasing to an empty address', async () => {
+    await assertThrows(presaleCrowdsale.releaseLock(0x0))
+  })
+
   it('does not allow end date to be earlier or the same than start date', async () => {
     await assertThrows(SelfKeyCrowdsale.new(
       start,
