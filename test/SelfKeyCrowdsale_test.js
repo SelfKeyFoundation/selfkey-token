@@ -249,6 +249,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isBelow(weiRaised2, weiRaised)
     })
 
+    it('does not allow finalize to be re-invoked', async () => {
+      await assertThrows(crowdsaleContract.finalize())
+    })
+
     it('should properly reset all locked token balances', async () => {
       let lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
       let lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
@@ -265,16 +269,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       assert.isAbove(Number(afterBalance1), Number(preBalance1))
       assert.isAbove(Number(afterBalance2), Number(preBalance2))
-    })
-
-    it('does not allow finalize to be re-invoked', async () => {
-      try {
-        await crowdsaleContract.finalize()
-        await crowdsaleContract.finalize()
-        assert.fail()
-      } catch (error) {
-        assertThrows(error)
-      }
     })
   })
 })
