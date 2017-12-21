@@ -49,7 +49,7 @@ And the more "SelfKey-specific" parameters:
 
 The `SelfKeyCrowdsale` contract features a list of addresses that are said (by the contract owner) to have passed a KYC process. This process is completely off-chain and depending on other systems, the contract has no knowledge on this regard, it only marks given addresses as verfied.
 
-KYC verification can be done even before sale starts and even after end date has been reached (but crowdsale has not been manually finalized) by invoking the `verifyKYC` method from a SelfKey wallet or web-enabled webpage.
+KYC verification can be done even before sale starts and even after end date has been reached (but crowdsale has not been manually finalized) by invoking the `verifyKYC` method from a SelfKey wallet or web3-enabled webpage.
 
 A `rejectKYC` method is also provided for cases where the given address is not compliant with the KYC process, in which case the contributed funds are returned to its owner and the purchased tokens are put back in the sale pool.
 
