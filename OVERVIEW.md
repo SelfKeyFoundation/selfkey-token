@@ -75,19 +75,19 @@ Founders' tokens are further splitted in the following manner:
 
 ### Stages of the token sale
 
-1. Pre-sale:
+#### Pre-sale:
 
 All pre-sale is done privately and "off-chain". After participants' KYC status is verified, SelfKey admins manually calculate the corresponding token allocation, and then `crowdsaleContract` owner should invoke the `addPrecommitment` function to allocate the tokens to the beneficiary.
 
 A parameter is provided to the `addPrecommitment` method so that "half-vesting" is optionally applied to a pre-commitment participant, meaning half of their allocated tokens are to be "time-locked" for a period of 6 months.
 
-2. Sale:
+#### Sale:
 
 Sale is enabled at `start date` which means it starts receiving any payments done directly to the contract address. The tokens corresponding to each participant are held by the contract until the sale is finalized. All contributions (in ETH) are held by the `KYCRefundVault` contract and no one (not even the crowdsale contract owner) can withdraw these funds. Only by successfully finalizing the crowdsale does the crowdsale owner have access to the funds raised.
 
 Participants' KYC status is by default "unverified". KYC verification can occur at any time, authorizing the transfer of tokens to the corresponding wallet, or refunding in case of KYC rejection.
 
-3. Finalization:
+#### Finalization:
 
 Finalization is manually triggered by the contract owner. This is even valid to occur before the set `end date`. Finalization process merely verifies the goal was reached or not, and invokes the `KYCRefundVault` for transfer of funds to the contract owner in case of successful crowdsale. Otherwise (the goal was not reached), the vault is enabled for refund claims.
 
