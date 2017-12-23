@@ -29,12 +29,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     // How many token units a buyer gets per wei
     uint256 public rate;
 
-    // How many token units a buyer gets per wei during pre-sale
-    uint256 public presaleRate;
-
-    // Amount of raised money in wei
-    uint256 public weiRaised;
-
     // Minimum tokens expected to sell
     uint256 public goal;
 
@@ -94,7 +88,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @param _startTime — Unix timestamp representing the crowdsale start time
      * @param _endTime — Unix timestamp representing the crowdsale start time
      * @param _rate — The number of tokens a buyer gets per wei
-     * @param _presaleRate — The number of tokens a pre-sale buyer gets per wei
      * @param _wallet — what is this?
      * @param _foundationPool — what is this?
      * @param _foundersPool — what is this?
@@ -105,7 +98,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint64 _startTime,
         uint64 _endTime,
         uint256 _rate,
-        uint256 _presaleRate,
         address _wallet,
         address _foundationPool,
         address _foundersPool,
@@ -125,7 +117,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         startTime = _startTime;
         endTime = _endTime;
         rate = _rate;
-        presaleRate = _presaleRate;
         wallet = _wallet;
         goal = _goal;
 
@@ -154,25 +145,22 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Low level token purchase. Only callable internally.
      */
     function buyTokens(address beneficiary) internal {
-        require(beneficiary != 0x0);
+        require(now >= startTime);
         require(!isFinalized);
-        uint256 weiAmount = msg.value;
-        require(weiAmount != 0);
+        require(beneficiary != 0x0);
+        require(msg.value != 0);
         require(validPurchase(beneficiary));
 
         // Calculate the token amount to be allocated
+        uint256 weiAmount = msg.value;
         uint256 tokens = weiAmount.mul(rate);
-
-        // if pre-sale
-        if (now < startTime) { // solhint-disable-line not-rely-on-time
-            require(kycVerified[beneficiary]);
-
-            // re-calculate the token amount to be allocated
-            tokens = weiAmount.mul(presaleRate);
-        }
 
         // Total sale cap must not be exceeded
         require(totalPurchased.add(tokens) <= SALE_CAP);
+
+        // Update state
+        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
+        totalPurchased = totalPurchased.add(tokens);
 
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
@@ -180,10 +168,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             addLockedBalance(beneficiary, tokens);
         }
 
-        // Update state
-        weiRaised = weiRaised.add(weiAmount);
-        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
-        totalPurchased = totalPurchased.add(tokens);
+        // Sends ETH contribution to the RefundVault
+        vault.deposit.value(msg.value)(beneficiary);
 
         TokenPurchase(
             msg.sender,
@@ -191,7 +177,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             weiAmount,
             tokens
         );
-        forwardFunds(beneficiary);
     }
 
     /**
@@ -337,7 +322,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             uint256 tokens = resetLockedBalance(participant);
 
             totalPurchased = totalPurchased.sub(tokens);
-            weiRaised = weiRaised.sub(vault.deposited(participant));
             weiContributed[participant] = 0;
 
             // enable vault funds as refundable for this participant address
@@ -364,7 +348,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
             // revert contributions recorded for this participant
             totalPurchased = totalPurchased.sub(tokens);
-            weiRaised = weiRaised.sub(vault.deposited(participant));
             weiContributed[participant] = 0;
 
             // enable vault funds as refundable for this participant address
@@ -387,9 +370,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // requires to be on pre-sale
         require(now < startTime); // solhint-disable-line not-rely-on-time
 
-        // Sets participant as "whitelisted". KYC process has already taken place for precommitters
-        kycVerified[beneficiary] = true;
+        // updates state
+        kycVerified[beneficiary] = true;    // KYC was already done off-chain
         uint256 tokens = tokensAllocated;
+        totalPurchased = totalPurchased.add(tokens);
 
         if (halfVesting) {
             // Calculates vesting release date for 6 months after start time
@@ -406,20 +390,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             token.safeTransfer(beneficiary, tokens);
         }
 
-        // update state
-        totalPurchased = totalPurchased.add(tokens);
-
         AddedPrecommitment(
             beneficiary,
             tokens
         );
-    }
-
-    /**
-     * @dev Forwards funds to contract wallet.
-     */
-    function forwardFunds(address beneficiary) internal {
-        vault.deposit.value(msg.value)(beneficiary); // Store funds in "refund vault"
     }
 
     /**
@@ -442,6 +416,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint256 amount = weiContributed[beneficiary];
         bool aboveMinPurchaseCap = amount.add(msg.value) >= PURCHASE_MIN_CAP_WEI;
         bool belowMaxPurchaseCap = amount.add(msg.value) <= PURCHASE_MAX_CAP_WEI;
+
         return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 
@@ -450,9 +425,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      *      This should be called after sale finalization
      */
     function burnUnsold() internal {
-        // All tokens held by this contract, except for those
-        // still locked to participants, get burned
-        uint256 tokens = token.balanceOf(this).sub(lockedTotal);
-        token.burn(tokens);
+        // All tokens held by this contract get burned
+        token.burn(token.balanceOf(this));
     }
 }

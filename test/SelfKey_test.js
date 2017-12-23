@@ -1,7 +1,7 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
-const { rate, presaleRate, goal } = require('./utils/common')
+const { rate, goal } = require('./utils/common')
 
 contract('SelfKeyToken', (accounts) => {
   const now = (new Date()).getTime() / 1000
@@ -26,7 +26,6 @@ contract('SelfKeyToken', (accounts) => {
       start,
       end,
       rate,
-      presaleRate,
       wallet,
       foundationPool,
       foundersPool,
