@@ -2,7 +2,7 @@ const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
 const assertThrows = require('./utils/assertThrows')
-const { rate, presaleRate, goal } = require('./utils/common')
+const { rate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   const YEAR_IN_SECONDS = 31622400
@@ -27,7 +27,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
       start,
       end,
       rate,
-      presaleRate,
       wallet,
       foundationPool,
       foundersPool,
@@ -74,29 +73,18 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseLock(buyer3))
   })
 
-  // Public pre-sale
-  it('receives ETH and allocate due tokens for kyc-verified addresses', async () => {
+  it('does not allow any contributions before start time', async () => {
     const sendAmount = web3.toWei(1, 'ether')
-    // Participant is not KYC verified yet
-    await assertThrows(presaleCrowdsale.sendTransaction({
-      from: buyer,
-      value: sendAmount,
-      gas: 999999
-    }))
-
-    it('allows the updating of public sale conversion rate before sale starts', async () => {
-      const rate1 = await presaleCrowdsale.rate.call()
-      const newRate = 50000
-      await presaleCrowdsale.setRate(newRate)
-      const rate2 = await presaleCrowdsale.rate.call()
-      assert.equal(rate2, newRate)
-    })
-
-    // now verify them.
     await presaleCrowdsale.verifyKYC(buyer)
-    await presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount })
-    const balance = await presaleToken.balanceOf.call(buyer)
-    assert.equal(Number(balance), presaleRate * sendAmount)
+    await assertThrows(presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount }))
+  })
+
+  it('allows the updating of public sale conversion rate before sale starts', async () => {
+    const rate1 = await presaleCrowdsale.rate.call()
+    const newRate = 50000
+    await presaleCrowdsale.setRate(newRate)
+    const rate2 = await presaleCrowdsale.rate.call()
+    assert.equal(rate2, newRate)
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
@@ -112,7 +100,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
       start,
       start,
       rate,
-      presaleRate,
       wallet,
       foundationPool,
       foundersPool,
@@ -126,7 +113,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
       start,
       end,
       0,
-      presaleRate,
       wallet,
       foundationPool,
       foundersPool,
@@ -140,7 +126,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
       start,
       end,
       rate,
-      presaleRate,
       0x0,
       foundationPool,
       foundersPool,

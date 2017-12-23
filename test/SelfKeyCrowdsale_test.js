@@ -4,7 +4,7 @@ const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/Token
 const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 
 const assertThrows = require('./utils/assertThrows')
-const { rate, presaleRate, goal } = require('./utils/common')
+const { rate, goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
@@ -35,7 +35,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
         start,
         end,
         rate,
-        presaleRate,
         wallet,
         foundationPool,
         foundersPool,
@@ -173,7 +172,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
         start,
         end,
         rate,
-        presaleRate,
         wallet,
         foundationPool,
         foundersPool,
@@ -219,7 +217,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
         start,
         end,
         rate,
-        presaleRate,
         wallet,
         foundationPool,
         foundersPool,
@@ -250,12 +247,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('should allow finalization', async () => {
-      let weiRaised = await crowdsaleContract.weiRaised.call()
       await crowdsaleContract.finalize()
       let finalized = await crowdsaleContract.isFinalized.call()
       assert.isTrue(finalized)
-      let weiRaised2 = await crowdsaleContract.weiRaised.call()
-      assert.isBelow(weiRaised2, weiRaised)
     })
 
     it('does not allow finalize to be re-invoked', async () => {
