@@ -135,8 +135,13 @@ contract('SelfKeyCrowdsale', (accounts) => {
     context('contributions above maximum purchase cap', () => {
       const sendAmount = PURCHASE_MAX_CAP_WEI + SIGNIFICANT_AMOUNT
 
-      it('are not allowed', () =>
-        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })))
+      it('are not allowed', () => {
+        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+      })
+    })
+
+    it("doesn't allow updating the sale conversion rate if sale has already started", () => {
+      assertThrows(crowdsaleContract.setRate(999999))
     })
 
     it('can finalize token sale', async () => {

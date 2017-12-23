@@ -84,6 +84,14 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
       gas: 999999
     }))
 
+    it('allows the updating of public sale conversion rate before sale starts', async () => {
+      const rate1 = await presaleCrowdsale.rate.call()
+      const newRate = 50000
+      await presaleCrowdsale.setRate(newRate)
+      const rate2 = await presaleCrowdsale.rate.call()
+      assert.equal(rate2, newRate)
+    })
+
     // now verify them.
     await presaleCrowdsale.verifyKYC(buyer)
     await presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount })

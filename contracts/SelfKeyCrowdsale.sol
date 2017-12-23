@@ -174,8 +174,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Total sale cap must not be exceeded
         require(totalPurchased.add(tokens) <= SALE_CAP);
 
-
-
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
         } else {
@@ -194,6 +192,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             tokens
         );
         forwardFunds(beneficiary);
+    }
+
+    /**
+     * @dev Updates the conversion (ETH/KEY) rate, as long as the public sale hasn't started
+     * @param newRate - Updated conversion rate
+     */
+    function setRate(uint256 newRate) public onlyOwner {
+        require(now < startTime);
+        rate = newRate;
     }
 
     /**
