@@ -84,10 +84,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     event AddedPrecommitment(
         address indexed participant,
-        uint256 contribution,
-        uint256 bonusFactor,
-        uint256 _rate,
-        uint64 vestingMonths
+        uint256 tokensAllocated
     );
 
     event Finalized();
@@ -245,6 +242,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function finalize() public onlyOwner {
         require(!isFinalized);
+        require(now > startTime);
 
         clearPendingKYC();
         finalization();
@@ -370,55 +368,45 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     /**
     * @dev Adds an address for pre-sale commitments made off-chain.
-    * Contribution = 0 is valid, to just whitelist the address as KYC-verified.
+    * @param beneficiary — Address of the already verified participant
+    * @param tokensAllocated — Exact amount of KEY tokens (including decimal places) to allocate
+    * @param halfVesting — determines whether the half the tokens will be time-locked or not
     */
     function addPrecommitment(
         address beneficiary,
-        uint256 weiContribution,
-        uint256 bonusFactor,
-        uint64 vestingPeriod
+        uint256 tokensAllocated,
+        bool halfVesting
     ) public onlyOwner
     {
         // requires to be on pre-sale
         require(now < startTime); // solhint-disable-line not-rely-on-time
-        // requires unfinalized state (in case owner finalizes before startTime)
-        require(!isFinalized);
-        require(bonusFactor >= 0);
-        require(vestingPeriod >= 0);
 
+        // Sets participant as "whitelisted". KYC process has already taken place for precommitters
         kycVerified[beneficiary] = true;
+        uint256 tokens = tokensAllocated;
 
-        if (weiContribution > 0) {
-            // calculate token allocation at bonus price
-            uint256 newRate = rate.add(rate.mul(bonusFactor).div(100));
-            uint256 tokens = newRate * weiContribution;
-            //  Presale_cap must not be exceeded
-            require(totalPurchased.add(tokens) <= PRESALE_CAP);
+        if (halfVesting) {
+            // Calculates vesting release date for 6 months after start time
+            uint64 vestingSeconds = 6 * 30 days;
+            uint64 endTimeLock = uint64(startTime + vestingSeconds);
 
-            weiRaised = weiRaised.add(weiContribution);
-            weiContributed[beneficiary] = weiContributed[beneficiary].add(weiContribution);
-            totalPurchased = totalPurchased.add(tokens);
-
-            if (vestingPeriod == 0) {
-                token.safeTransfer(beneficiary, tokens);
-            } else {
-                uint64 vestingSeconds = vestingPeriod * 30 days;
-                uint256 half = tokens.div(2);
-                uint64 endTimeLock = uint64(startTime + vestingSeconds);
-                TokenTimelock timelock = new TokenTimelock(token, beneficiary, endTimeLock);
-                vestedTokens[beneficiary] = address(timelock);
-                token.safeTransfer(beneficiary, half);
-                token.safeTransfer(timelock, tokens.sub(half));
-            }
-
-            AddedPrecommitment(
-                beneficiary,
-                weiContribution,
-                bonusFactor,
-                newRate,
-                vestingPeriod
-            );
+            // Sets a timelock for half the tokens allocated
+            uint256 half = tokens.div(2);
+            TokenTimelock timelock = new TokenTimelock(token, beneficiary, endTimeLock);
+            vestedTokens[beneficiary] = address(timelock);
+            token.safeTransfer(beneficiary, half);
+            token.safeTransfer(timelock, tokens.sub(half));
+        } else {
+            token.safeTransfer(beneficiary, tokens);
         }
+
+        // update state
+        totalPurchased = totalPurchased.add(tokens);
+
+        AddedPrecommitment(
+            beneficiary,
+            tokens
+        );
     }
 
     /**
