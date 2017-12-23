@@ -160,7 +160,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
   })
 
   context('Crowdsale whose goal hasn\'t been reached', () => {
-    const hugeGoal = 3333333333333333333333
+    const hugeGoal = 950000000000000000000000000
     const sendAmount = web3.toWei(3, 'ether')
 
     before(async () => {

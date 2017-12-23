@@ -35,7 +35,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     // Amount of raised money in wei
     uint256 public weiRaised;
 
-    // Minimum cap expected to raise in wei
+    // Minimum tokens expected to sell
     uint256 public goal;
 
     // Total amount of tokens purchased, including pre-sale
@@ -99,7 +99,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @param _foundationPool — what is this?
      * @param _foundersPool — what is this?
      * @param _legalExpensesWallet — what is this?
-     * @param _goal — Minimum cap expected to raise in wei.
+     * @param _goal — Minimum amount of tokens expected to sell.
      */
     function SelfKeyCrowdsale(
         uint64 _startTime,
@@ -169,24 +169,23 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
             // re-calculate the token amount to be allocated
             tokens = weiAmount.mul(presaleRate);
-
-            //  Presale_cap must not be exceeded
-            require(totalPurchased.add(tokens) <= PRESALE_CAP);
         }
 
         // Total sale cap must not be exceeded
         require(totalPurchased.add(tokens) <= SALE_CAP);
 
-        // Update state
-        weiRaised = weiRaised.add(weiAmount);
-        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
-        totalPurchased = totalPurchased.add(tokens);
+
 
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
         } else {
             addLockedBalance(beneficiary, tokens);
         }
+
+        // Update state
+        weiRaised = weiRaised.add(weiAmount);
+        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
+        totalPurchased = totalPurchased.add(tokens);
 
         TokenPurchase(
             msg.sender,
@@ -285,7 +284,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev If crowdsale is unsuccessful, participants can claim refunds
      */
     function goalReached() public constant returns (bool) {
-        return weiRaised >= goal;
+        return totalPurchased >= goal;
     }
 
     /**
