@@ -26,7 +26,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
   let crowdsaleContract
   let tokenContract
-  let timelockFoundersContract
+  let timelockFounders1Contract
+  let timelockFounders2Contract
   let vaultContract
 
   context('Regular Crowdsale', () => {
@@ -43,8 +44,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       )
       const token = await crowdsaleContract.token.call()
       tokenContract = await SelfKeyToken.at(token)
-      const timelockFounders = await crowdsaleContract.timelockFounders.call()
-      timelockFoundersContract = await TokenTimelock.at(timelockFounders)
+      const timelockFounders1 = await crowdsaleContract.timelockFounders1.call()
+      const timelockFounders2 = await crowdsaleContract.timelockFounders2.call()
+      timelockFounders1Contract = await TokenTimelock.at(timelockFounders1)
+      timelockFounders2Contract = await TokenTimelock.at(timelockFounders2)
       const vaultAddress = await crowdsaleContract.vault.call()
       vaultContract = await KYCRefundVault.at(vaultAddress)
     })
@@ -57,7 +60,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('created token timelocks', () => {
-      assert.isNotNull(timelockFoundersContract)
+      assert.isNotNull(timelockFounders1Contract)
+      assert.isNotNull(timelockFounders2Contract)
     })
 
     it('created the Refund Vault', () => {
@@ -68,7 +72,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
       const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
-      const expectedTimelockFoundersTokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED.call()
+      const expectedtimelockFounders1Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
+      const expectedtimelockFounders2Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
       // Check foundation Pool tokens are allocated correctly
       assert.equal(foundationBalance, Number(expectedFoundationTokens))
@@ -76,12 +81,15 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const legalBalance = await tokenContract.balanceOf.call(legalExpensesWallet)
       // Check legal expenses wallet tokens are allocated correctly
       assert.equal(legalBalance, Number(expectedLegalTokens))
-      // Get timelock instance address
-      const timelockFoundersAddress = await crowdsaleContract.timelockFounders.call()
-      // Get founders' timelock balance
-      const timelockFoundersBalance = await tokenContract.balanceOf.call(timelockFoundersAddress)
-      // Check timelockFounders tokens are allocated correctly
-      assert.equal(timelockFoundersBalance, Number(expectedTimelockFoundersTokens))
+      // Get timelock instances addresses
+      const timelockFounders1Address = await crowdsaleContract.timelockFounders1.call()
+      const timelockFounders2Address = await crowdsaleContract.timelockFounders2.call()
+      // Get founders' timelock balances
+      const timelockFounders1Balance = await tokenContract.balanceOf.call(timelockFounders1Address)
+      const timelockFounders2Balance = await tokenContract.balanceOf.call(timelockFounders2Address)
+      // Check timelockFounders1 tokens are allocated correctly
+      assert.equal(timelockFounders1Balance, Number(expectedtimelockFounders1Tokens))
+      assert.equal(timelockFounders2Balance, Number(expectedtimelockFounders2Tokens))
     })
 
     it('receives ETH to buy tokens that get transferred to another address', async () => {
@@ -180,8 +188,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       )
       const token = await crowdsaleContract.token.call()
       tokenContract = await SelfKeyToken.at(token)
-      const timelockFounders = await crowdsaleContract.timelockFounders.call()
-      timelockFoundersContract = await TokenTimelock.at(timelockFounders)
+      const timelockFounders1 = await crowdsaleContract.timelockFounders1.call()
+      const timelockFounders2 = await crowdsaleContract.timelockFounders2.call()
+      timelockFounders1Contract = await TokenTimelock.at(timelockFounders1)
+      timelockFounders2Contract = await TokenTimelock.at(timelockFounders2)
       const vaultAddress = await crowdsaleContract.vault.call()
       vaultContract = await KYCRefundVault.at(vaultAddress)
     })

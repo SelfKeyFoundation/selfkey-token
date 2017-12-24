@@ -58,8 +58,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     address public foundersPool;
     address public legalExpensesWallet;
 
-    // Token Timelock
-    TokenTimelock public timelockFounders;
+    // Token Timelocks
+    TokenTimelock public timelockFounders1;
+    TokenTimelock public timelockFounders2;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding.
     KYCRefundVault public vault;
@@ -126,11 +127,18 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         foundersPool = _foundersPool;
         legalExpensesWallet = _legalExpensesWallet;
 
-        // Set timelocks to 1 year after startTime
-        uint64 unlockAt = uint64(startTime + 31622400);
-        timelockFounders = new TokenTimelock(token, foundersPool, unlockAt);
+        // Set timelockss to 6 months and a year after startTime, respectively
+        uint64 unlockAt1 = uint64(startTime + 15811200);
+        uint64 unlockAt2 = uint64(startTime + 31622400);
+        timelockFounders1 = new TokenTimelock(token, foundersPool, unlockAt1);
+        timelockFounders2 = new TokenTimelock(token, foundersPool, unlockAt2);
 
-        distributeInitialFunds();
+        // Genesis allocation of tokens
+        token.safeTransfer(foundersPool, FOUNDERS_TOKENS);
+        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(timelockFounders1, FOUNDERS_TOKENS_VESTED_1);
+        token.safeTransfer(timelockFounders2, FOUNDERS_TOKENS_VESTED_2);
+        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
@@ -282,8 +290,12 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     /**
      * @dev Release Founders' time-locked tokens
      */
-    function releaseLockFounders() public {
-        timelockFounders.release();
+    function releaseLockFounders1() public {
+        timelockFounders1.release();
+    }
+
+    function releaseLockFounders2() public {
+        timelockFounders2.release();
     }
 
     /**
@@ -394,15 +406,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             beneficiary,
             tokens
         );
-    }
-
-    /**
-     * @dev Initial allocation of tokens
-     */
-    function distributeInitialFunds() internal {
-        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
-        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
