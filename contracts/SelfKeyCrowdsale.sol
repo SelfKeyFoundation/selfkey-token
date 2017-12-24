@@ -129,8 +129,13 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Set timelocks to 1 year after startTime
         uint64 unlockAt = uint64(startTime + 31622400);
         timelockFounders = new TokenTimelock(token, foundersPool, unlockAt);
+        //timelockFounders2 = new TokenTimelock(token, foundersPool, unlockAt2);
 
-        distributeInitialFunds();
+        // Genesis allocation of tokens
+        token.safeTransfer(foundersPool, FOUNDERS_TOKENS);
+        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
+        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
@@ -394,15 +399,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             beneficiary,
             tokens
         );
-    }
-
-    /**
-     * @dev Initial allocation of tokens
-     */
-    function distributeInitialFunds() internal {
-        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
-        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
