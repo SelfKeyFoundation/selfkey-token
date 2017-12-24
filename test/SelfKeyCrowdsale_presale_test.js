@@ -88,7 +88,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
-    await assertThrows(presaleCrowdsale.releaseLockFounders())
+    await assertThrows(presaleCrowdsale.releaseLockFounders1())
   })
 
   it('does not allow locked token releasing to an empty address', async () => {

@@ -24,11 +24,14 @@ contract CrowdsaleConfig {
     // approx 49.5%
     uint256 public constant FOUNDATION_POOL_TOKENS = 2970000000 * MIN_UNIT;
 
-    // 16.5% Timelocked for a year
-    uint256 public constant FOUNDERS_TOKENS_VESTED = 660000000 * MIN_UNIT;
-
     // 5.5% Not vested
     uint256 public constant FOUNDERS_TOKENS = 330000000 * MIN_UNIT;
+
+    // 5.5% Timelocked for half a year
+    uint256 public constant FOUNDERS_TOKENS_VESTED_1 = 330000000 * MIN_UNIT;
+
+    // 5.5% Timelocked for a year
+    uint256 public constant FOUNDERS_TOKENS_VESTED_2 = 330000000 * MIN_UNIT;
 
     // 1%
     uint256 public constant LEGAL_EXPENSES_TOKENS = 60000000 * MIN_UNIT;
