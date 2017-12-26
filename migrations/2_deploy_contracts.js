@@ -8,8 +8,7 @@ module.exports = (deployer, network, accounts) => {
   const startTime = now + 172800 // Two days after current time
   // const startTime = 1507939200 // 14 October 2017 @ 12:00am (UTC)
   const endTime = startTime + 604800 // One week after startTime
-  const rate = 30000 // approximately $0.015 per KEY at 1 ETH = $450
-  const goal = 450000000000000000000000000 // approx. $5,940,000 in KEY
+  const goal = 166666666000000000000000000 // approx. $2,500,000 in KEY
 
   let foundationPool
   let foundersPool
@@ -33,7 +32,6 @@ module.exports = (deployer, network, accounts) => {
     SelfKeyCrowdsale,
     startTime,
     endTime,
-    rate,
     wallet,
     foundationPool,
     foundersPool,

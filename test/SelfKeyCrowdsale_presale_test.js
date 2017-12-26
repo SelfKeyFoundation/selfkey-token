@@ -2,7 +2,7 @@ const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
 const assertThrows = require('./utils/assertThrows')
-const { rate, goal } = require('./utils/common')
+const { goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   const YEAR_IN_SECONDS = 31622400
@@ -26,7 +26,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     presaleCrowdsale = await SelfKeyCrowdsale.new(
       start,
       end,
-      rate,
       wallet,
       foundationPool,
       foundersPool,
@@ -81,10 +80,29 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
 
   it('allows the updating of public sale conversion rate before sale starts', async () => {
     const rate1 = await presaleCrowdsale.rate.call()
-    const newRate = 50000
-    await presaleCrowdsale.setRate(newRate)
+    const newEthPrice = 800
+
+    // Set new ETH price and get related attributes
+    await presaleCrowdsale.setEthPrice(newEthPrice)
     const rate2 = await presaleCrowdsale.rate.call()
-    assert.equal(rate2, newRate)
+    const minCap = await presaleCrowdsale.minCapWei.call()
+    const maxCap = await presaleCrowdsale.maxCapWei.call()
+    const keyPrice = await presaleCrowdsale.TOKEN_PRICE_THOUSANDTH.call()
+    const minCapUSD = await presaleCrowdsale.PURCHASER_MIN_CAP_USD.call()
+    const maxCapUSD = await presaleCrowdsale.PURCHASER_MAX_CAP_USD.call()
+    const minTokenUnit = await presaleCrowdsale.MIN_TOKEN_UNIT.call()
+
+    // Calculate rates and caps to compare
+    const expectedRate = parseInt(newEthPrice * 1000 / keyPrice)
+    const expectedMinCap = parseInt(minCapUSD * minTokenUnit / newEthPrice)
+    const expectedMaxCap = parseInt(maxCapUSD * minTokenUnit / newEthPrice)
+    assert.equal(expectedRate, rate2)
+    assert.equal(expectedMinCap, minCap)
+    assert.equal(expectedMaxCap, maxCap)
+  })
+
+  it('does not allow to set an ETH price equal to zero', async () => {
+    assertThrows(presaleCrowdsale.setEthPrice(0))
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
@@ -99,20 +117,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(SelfKeyCrowdsale.new(
       start,
       start,
-      rate,
-      wallet,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
-      goal
-    ))
-  })
-
-  it('does not allow rate to be 0', async () => {
-    await assertThrows(SelfKeyCrowdsale.new(
-      start,
-      end,
-      0,
       wallet,
       foundationPool,
       foundersPool,
@@ -125,7 +129,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(SelfKeyCrowdsale.new(
       start,
       end,
-      rate,
       0x0,
       foundationPool,
       foundersPool,
