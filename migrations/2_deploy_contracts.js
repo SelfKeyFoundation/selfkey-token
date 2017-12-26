@@ -8,7 +8,6 @@ module.exports = (deployer, network, accounts) => {
   const startTime = now + 172800 // Two days after current time
   // const startTime = 1507939200 // 14 October 2017 @ 12:00am (UTC)
   const endTime = startTime + 604800 // One week after startTime
-  const ethPrice = 760
   const goal = 166666666000000000000000000 // approx. $2,500,000 in KEY
 
   let foundationPool
@@ -37,7 +36,6 @@ module.exports = (deployer, network, accounts) => {
     foundationPool,
     foundersPool,
     legalExpensesWallet,
-    //ethPrice,
     goal
   )
 }
