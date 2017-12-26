@@ -108,13 +108,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         address _foundationPool,
         address _foundersPool,
         address _legalExpensesWallet,
-        //uint256 _ethPrice,
         uint256 _goal
     ) public
     {
         require(_endTime > _startTime);
         require(_wallet != 0x0);
-        //require(_ethPrice > 0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
         // mints all tokens and gives them to the crowdsale
@@ -127,7 +125,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         foundationPool = _foundationPool;
         foundersPool = _foundersPool;
         legalExpensesWallet = _legalExpensesWallet;
-        //ethPrice = _ethPrice;
         goal = _goal;
 
         vault = new KYCRefundVault(wallet);
