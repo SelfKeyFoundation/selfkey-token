@@ -26,11 +26,18 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     uint64 public startTime;
     uint64 public endTime;
 
-    // How many token units a buyer gets per wei
-    uint256 public rate;
-
     // Minimum tokens expected to sell
     uint256 public goal;
+
+    // How many tokens a buyer gets per ETH
+    uint256 public rate = 51800;
+
+    // Caps per purchaser during public sale
+    uint256 public minCapWei = 128700129000000000;
+    uint256 public maxCapWei = 6435006435000000000;
+
+    // ETH price in USD, can be later updated until start date
+    uint256 public ethPrice = 777;
 
     // Total amount of tokens purchased, including pre-sale
     uint256 public totalPurchased = 0;
@@ -88,27 +95,26 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Crowdsale contract constructor
      * @param _startTime — Unix timestamp representing the crowdsale start time
      * @param _endTime — Unix timestamp representing the crowdsale start time
-     * @param _rate — The number of tokens a buyer gets per wei
-     * @param _wallet — what is this?
-     * @param _foundationPool — what is this?
-     * @param _foundersPool — what is this?
-     * @param _legalExpensesWallet — what is this?
+     * @param _wallet — address where all contributions should go to
+     * @param _foundationPool — SelfKey Foundation wallet address
+     * @param _foundersPool — Founding team token distribution pool
+     * @param _legalExpensesWallet — Address for allocatin legal expenses fee
      * @param _goal — Minimum amount of tokens expected to sell.
      */
     function SelfKeyCrowdsale(
         uint64 _startTime,
         uint64 _endTime,
-        uint256 _rate,
         address _wallet,
         address _foundationPool,
         address _foundersPool,
         address _legalExpensesWallet,
+        //uint256 _ethPrice,
         uint256 _goal
     ) public
     {
         require(_endTime > _startTime);
-        require(_rate > 0);
         require(_wallet != 0x0);
+        //require(_ethPrice > 0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
         // mints all tokens and gives them to the crowdsale
@@ -117,19 +123,18 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         startTime = _startTime;
         endTime = _endTime;
-        rate = _rate;
         wallet = _wallet;
+        foundationPool = _foundationPool;
+        foundersPool = _foundersPool;
+        legalExpensesWallet = _legalExpensesWallet;
+        //ethPrice = _ethPrice;
         goal = _goal;
 
         vault = new KYCRefundVault(wallet);
 
-        foundationPool = _foundationPool;
-        foundersPool = _foundersPool;
-        legalExpensesWallet = _legalExpensesWallet;
-
         // Set timelockss to 6 months and a year after startTime, respectively
-        uint64 unlockAt1 = uint64(startTime + 15811200);
-        uint64 unlockAt2 = uint64(startTime + 31622400);
+        uint64 unlockAt1 = uint64(startTime + 15552000);
+        uint64 unlockAt2 = uint64(startTime + 31104000);
         timelockFounders1 = new TokenTimelock(token, foundersPool, unlockAt1);
         timelockFounders2 = new TokenTimelock(token, foundersPool, unlockAt2);
 
@@ -154,21 +159,22 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function buyTokens(address beneficiary) internal {
         require(now >= startTime);
+        require(now < endTime);
         require(!isFinalized);
         require(beneficiary != 0x0);
         require(msg.value != 0);
-        require(validPurchase(beneficiary));
 
         // Calculate the token amount to be allocated
         uint256 weiAmount = msg.value;
         uint256 tokens = weiAmount.mul(rate);
 
-        // Total sale cap must not be exceeded
-        require(totalPurchased.add(tokens) <= SALE_CAP);
-
         // Update state
         weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
         totalPurchased = totalPurchased.add(tokens);
+
+        require(totalPurchased <= SALE_CAP);
+        require(weiContributed[beneficiary] >= minCapWei);
+        require(weiContributed[beneficiary] <= maxCapWei);
 
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
@@ -188,12 +194,17 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Updates the conversion (ETH/KEY) rate, as long as the public sale hasn't started
-     * @param newRate - Updated conversion rate
+     * @dev Updates the ETH/USD conversion rate as long as the public sale hasn't started
+     * @param _ethPrice - Updated conversion rate
      */
-    function setRate(uint256 newRate) public onlyOwner {
+    function setEthPrice(uint256 _ethPrice) public onlyOwner {
         require(now < startTime);
-        rate = newRate;
+        require(_ethPrice > 0);
+
+        ethPrice = _ethPrice;
+        rate = ethPrice.mul(1000).div(TOKEN_PRICE_THOUSANDTH);
+        minCapWei = PURCHASER_MIN_CAP_USD.mul(MIN_TOKEN_UNIT).div(ethPrice);
+        maxCapWei = PURCHASER_MAX_CAP_USD.mul(MIN_TOKEN_UNIT).div(ethPrice);
     }
 
     /**
@@ -406,21 +417,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             beneficiary,
             tokens
         );
-    }
-
-    /**
-     * @dev Returns true if purchase is made during valid period
-     *      and contribution is between purchase caps
-     *
-     * @param beneficiary — The address buying the tokens.
-     */
-    function validPurchase(address beneficiary) internal view returns (bool) {
-        bool withinPeriod = now <= endTime; // solhint-disable-line not-rely-on-time
-        uint256 amount = weiContributed[beneficiary];
-        bool aboveMinPurchaseCap = amount.add(msg.value) >= PURCHASE_MIN_CAP_WEI;
-        bool belowMaxPurchaseCap = amount.add(msg.value) <= PURCHASE_MAX_CAP_WEI;
-
-        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
     }
 
     /**

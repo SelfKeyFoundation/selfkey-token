@@ -4,15 +4,13 @@ const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/Token
 const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 
 const assertThrows = require('./utils/assertThrows')
-const { rate, goal } = require('./utils/common')
+const { goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
   const end = start + 31622400 // 1 year from start
 
-  const PURCHASE_MIN_CAP_WEI = 222222222000000000
-  const PURCHASE_MAX_CAP_WEI = 33333333333000000000
   const SIGNIFICANT_AMOUNT = 2048
 
   const [
@@ -35,7 +33,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        rate,
         wallet,
         foundationPool,
         foundersPool,
@@ -95,11 +92,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('receives ETH to buy tokens that get transferred to another address', async () => {
       const sendAmount = web3.toWei(2, 'ether')
       const vaultInitialBalance = await vaultContract.deposited.call(buyer)
+
       // send ETH to crowdsale contract for buying KEY
       await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
       // check KEY (locked) balance of buyer
       const newBalance = await crowdsaleContract.lockedBalance.call(buyer)
-      // Assert (locked) KEY balance is correct
+      const rate = await crowdsaleContract.rate.call()
       assert.equal(Number(newBalance), sendAmount * rate)
       const vaultNewBalance = await vaultContract.deposited.call(buyer)
       // Check wei added to the vault is correct
@@ -133,22 +131,20 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isAbove(Number(balance3), Number(balance2))
     })
 
-    context('contributions below minimum purchase cap', () => {
-      const sendAmount = PURCHASE_MIN_CAP_WEI - SIGNIFICANT_AMOUNT
-      it('are not allowed', () =>
-        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount })))
+    it('does not allow contributions below minimum cap per purchaser', async () => {
+      const purchaseMinCap = await crowdsaleContract.minCapWei.call()
+      const sendAmount = Number(purchaseMinCap) - SIGNIFICANT_AMOUNT
+      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
     })
 
-    context('contributions above maximum purchase cap', () => {
-      const sendAmount = PURCHASE_MAX_CAP_WEI + SIGNIFICANT_AMOUNT
-
-      it('are not allowed', () => {
-        assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
-      })
+    it('does not allow contributions above maximum cap per purchaser', async () => {
+      const purchaseMaxCap = await crowdsaleContract.maxCapWei.call()
+      const sendAmount = Number(purchaseMaxCap) + SIGNIFICANT_AMOUNT
+      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
     })
 
-    it("doesn't allow updating the sale conversion rate if sale has already started", () => {
-      assertThrows(crowdsaleContract.setRate(999999))
+    it('does not allow updating ETH price if sale has already started', () => {
+      assertThrows(crowdsaleContract.setEthPrice(999))
     })
 
     it('can finalize token sale', async () => {
@@ -179,7 +175,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        rate,
         wallet,
         foundationPool,
         foundersPool,
@@ -226,7 +221,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        rate,
         wallet,
         foundationPool,
         foundersPool,
