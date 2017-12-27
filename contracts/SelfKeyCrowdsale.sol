@@ -116,8 +116,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         timelockFounders2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, unlockAt2);
 
         // Genesis allocation of tokens
-        token.safeTransfer(FOUNDERS_POOL_ADDR, FOUNDERS_TOKENS);
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(FOUNDERS_POOL_ADDR, FOUNDERS_TOKENS);
         token.safeTransfer(timelockFounders1, FOUNDERS_TOKENS_VESTED_1);
         token.safeTransfer(timelockFounders2, FOUNDERS_TOKENS_VESTED_2);
         token.safeTransfer(LEGAL_EXPENSES_ADDR, LEGAL_EXPENSES_TOKENS);
