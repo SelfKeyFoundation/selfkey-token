@@ -18,8 +18,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
     using SafeERC20 for SelfKeyToken;
 
-    address public wallet;
-
     // Token contract
     SelfKeyToken public token;
 
@@ -60,11 +58,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     bool public isFinalized = false;
 
-    // Initial distribution addresses
-    address public foundationPool;
-    address public foundersPool;
-    address public legalExpensesWallet;
-
     // Token Timelocks
     TokenTimelock public timelockFounders1;
     TokenTimelock public timelockFounders2;
@@ -100,15 +93,10 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     function SelfKeyCrowdsale(
         uint64 _startTime,
         uint64 _endTime,
-        //address _wallet,
-        //address _foundationPool,
-        //address _foundersPool,
-        //address _legalExpensesWallet,
         uint256 _goal
     ) public
     {
         require(_endTime > _startTime);
-        //require(_wallet != 0x0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
         // mints all tokens and gives them to the crowdsale
@@ -117,15 +105,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         startTime = _startTime;
         endTime = _endTime;
-        //wallet = _wallet;
-        //foundationPool = _foundationPool;
-        //foundersPool = _foundersPool;
-        //legalExpensesWallet = _legalExpensesWallet;
         goal = _goal;
 
         vault = new KYCRefundVault(CROWDSALE_WALLET_ADDR);
 
-        // Set timelockss to 6 months and a year after startTime, respectively
+        // Set timelocks to 6 months and a year after startTime, respectively
         uint64 unlockAt1 = uint64(startTime + 15552000);
         uint64 unlockAt2 = uint64(startTime + 31104000);
         timelockFounders1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, unlockAt1);

@@ -13,13 +13,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
   const SIGNIFICANT_AMOUNT = 2048
 
-  const [
-    legalExpensesWallet,
-    foundersPool,
-    foundationPool,
-    wallet
-  ] = accounts.slice(6)
-
   const [buyer, buyer2, buyer3, receiver] = accounts.slice(1)
 
   let crowdsaleContract
@@ -33,10 +26,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        wallet,
-        foundationPool,
-        foundersPool,
-        legalExpensesWallet,
         goal
       )
       const token = await crowdsaleContract.token.call()
@@ -66,25 +55,31 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('distributed the initial token amounts correctly', async () => {
+      // Get allocation wallet addresses
+      const foundationPool = await crowdsaleContract.FOUNDATION_POOL_ADDR.call()
+      const legalExpensesWallet = await crowdsaleContract.LEGAL_EXPENSES_ADDR.call()
+      const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR.call()
+      const timelockFounders1Address = await crowdsaleContract.timelockFounders1.call()
+      const timelockFounders2Address = await crowdsaleContract.timelockFounders2.call()
+
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
       const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
+      const expectedFoundersTokens = await crowdsaleContract.FOUNDERS_TOKENS.call()
       const expectedtimelockFounders1Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
       const expectedtimelockFounders2Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
+
+      // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
-      // Check foundation Pool tokens are allocated correctly
-      assert.equal(foundationBalance, Number(expectedFoundationTokens))
-      // Get legal expenses wallet balance
       const legalBalance = await tokenContract.balanceOf.call(legalExpensesWallet)
-      // Check legal expenses wallet tokens are allocated correctly
-      assert.equal(legalBalance, Number(expectedLegalTokens))
-      // Get timelock instances addresses
-      const timelockFounders1Address = await crowdsaleContract.timelockFounders1.call()
-      const timelockFounders2Address = await crowdsaleContract.timelockFounders2.call()
-      // Get founders' timelock balances
+      const foundersBalance = await tokenContract.balanceOf.call(foundersPool)
       const timelockFounders1Balance = await tokenContract.balanceOf.call(timelockFounders1Address)
       const timelockFounders2Balance = await tokenContract.balanceOf.call(timelockFounders2Address)
-      // Check timelockFounders1 tokens are allocated correctly
+
+      // Check allocation was done as expected
+      assert.equal(foundationBalance, Number(expectedFoundationTokens))
+      assert.equal(legalBalance, Number(expectedLegalTokens))
+      assert.equal(foundersBalance, Number(expectedFoundersTokens))
       assert.equal(timelockFounders1Balance, Number(expectedtimelockFounders1Tokens))
       assert.equal(timelockFounders2Balance, Number(expectedtimelockFounders2Tokens))
     })
@@ -92,39 +87,46 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('receives ETH to buy tokens that get transferred to another address', async () => {
       const sendAmount = web3.toWei(2, 'ether')
       const vaultInitialBalance = await vaultContract.deposited.call(buyer)
+      const rate = await crowdsaleContract.rate.call()
 
       // send ETH to crowdsale contract for buying KEY
       await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
-      // check KEY (locked) balance of buyer
-      const newBalance = await crowdsaleContract.lockedBalance.call(buyer)
-      const rate = await crowdsaleContract.rate.call()
-      assert.equal(Number(newBalance), sendAmount * rate)
-      const vaultNewBalance = await vaultContract.deposited.call(buyer)
+      const lockedBalance = await crowdsaleContract.lockedBalance.call(buyer)
+      assert.equal(Number(lockedBalance), sendAmount * rate)
+
       // Check wei added to the vault is correct
+      const vaultNewBalance = await vaultContract.deposited.call(buyer)
       assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount)
-      // verify KYC for buyer
+
+      // verify KYC for buyer and check tokens were transferred to the buyer
       await crowdsaleContract.verifyKYC(buyer)
-      const anotherNewBalance = await tokenContract.balanceOf.call(buyer)
-      assert.equal(Number(anotherNewBalance), sendAmount * rate)
+      const newBalance = await tokenContract.balanceOf.call(buyer)
+      assert.equal(Number(newBalance), sendAmount * rate)
+
+      // Check tokens are not yet transferrable until crowdsale is finalized
       await assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
     })
 
     it('allows refund for KYC-failed participants', async () => {
       const sendAmount = web3.toWei(1, 'ether')
-      // const balance1 = web3.eth.getBalance(buyer2)
+
       // send ETH to crowdsale contract for buying KEY
       await crowdsaleContract.sendTransaction({ from: buyer2, value: sendAmount })
       const balance2 = web3.eth.getBalance(buyer2)
       let newBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+
       // check tokens were effectively allocated (locked) to the participant
       assert.isAbove(Number(newBalance), 0)
       await crowdsaleContract.rejectKYC(buyer2)
       newBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+
       // check allocated tokens to the participant are reset now
       assert.equal(Number(newBalance), 0)
+
       // check refund was enabled correctly
       const refundBalance = await vaultContract.toRefund.call(buyer2)
       assert.equal(sendAmount, refundBalance)
+
       // user claims refund
       await crowdsaleContract.claimRefund({ from: buyer2 })
       const balance3 = web3.eth.getBalance(buyer2)
@@ -175,10 +177,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        wallet,
-        foundationPool,
-        foundersPool,
-        legalExpensesWallet,
         hugeGoal
       )
       const token = await crowdsaleContract.token.call()
@@ -221,10 +219,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       crowdsaleContract = await SelfKeyCrowdsale.new(
         start,
         end,
-        wallet,
-        foundationPool,
-        foundersPool,
-        legalExpensesWallet,
         goal
       )
 
