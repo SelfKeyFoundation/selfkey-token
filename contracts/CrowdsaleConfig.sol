@@ -39,7 +39,7 @@ contract CrowdsaleConfig {
     // KEY price in USD (thousandths)
     uint256 public constant TOKEN_PRICE_THOUSANDTH = 15;  // $0.015 per KEY
 
-    // Contract wallet addresses
+    // Contract wallet addresses for initial allocation
     address public constant CROWDSALE_WALLET_ADDR = 0xd061bc63e751B0B878d36a45D97F8B9E08984674;
     address public constant FOUNDATION_POOL_ADDR = 0x15EB4FB06db8827fb82eF6DB1039e9cf88be867b;
     address public constant FOUNDERS_POOL_ADDR = 0x65a57dEa007Dc8767cB2E27357c58c4334092d09;
