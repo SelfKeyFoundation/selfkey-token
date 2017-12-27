@@ -10,32 +10,10 @@ module.exports = (deployer, network, accounts) => {
   const endTime = startTime + 604800 // One week after startTime
   const goal = 166666666000000000000000000 // approx. $2,500,000 in KEY
 
-  let foundationPool
-  let foundersPool
-  let wallet
-  let legalExpensesWallet
-
-  if (network === 'ropsten') {
-    wallet = '0x9153Bb96E667424a62777fEF49aCE9bab658DC6D'
-    foundationPool = '0x323989e34453e54c9E0b9f8fdE2645fdfe045d10'
-    foundersPool = '0xa3D0937Efd8E37A5792f8060D6C1a1678c2082a5'
-    legalExpensesWallet = '0x3B9c7A0e1EE3549F773F7bbC9c8f75e87E99AE24'
-  } else {
-    // wallet = accounts[9]
-    // foundationPool = accounts[8]
-    // foundersPool = accounts[7]
-    // legalExpensesWallet = accounts[6]
-    [legalExpensesWallet, foundersPool, foundationPool, wallet] = accounts.slice(6)
-  }
-
   deployer.deploy(
     SelfKeyCrowdsale,
     startTime,
     endTime,
-    wallet,
-    foundationPool,
-    foundersPool,
-    legalExpensesWallet,
     goal
   )
 }

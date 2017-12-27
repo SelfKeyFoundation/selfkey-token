@@ -8,13 +8,6 @@ contract('SelfKeyToken', (accounts) => {
   const start = now
   const end = start + 31622400 // 1 year from start
 
-  const [
-    legalExpensesWallet,
-    foundersPool,
-    foundationPool,
-    wallet
-  ] = accounts.slice(6)
-
   const [buyer, buyer2] = accounts.slice(1)
 
   let crowdsaleContract
@@ -25,10 +18,6 @@ contract('SelfKeyToken', (accounts) => {
     crowdsaleContract = await SelfKeyCrowdsale.new(
       start,
       end,
-      wallet,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
       goal
     )
     const token = await crowdsaleContract.token.call()

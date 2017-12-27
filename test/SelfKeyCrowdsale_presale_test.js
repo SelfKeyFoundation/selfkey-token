@@ -10,13 +10,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   const start = now + YEAR_IN_SECONDS
   const end = start + YEAR_IN_SECONDS
 
-  const [
-    legalExpensesWallet,
-    foundersPool,
-    foundationPool,
-    wallet
-  ] = accounts.slice(6)
-
   const [buyer3, buyer2, buyer] = accounts.slice(3)
 
   let presaleCrowdsale
@@ -26,10 +19,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     presaleCrowdsale = await SelfKeyCrowdsale.new(
       start,
       end,
-      wallet,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
       goal
     )
     const token = await presaleCrowdsale.token.call()
@@ -96,6 +85,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const expectedRate = parseInt(newEthPrice * 1000 / keyPrice)
     const expectedMinCap = parseInt(minCapUSD * minTokenUnit / newEthPrice)
     const expectedMaxCap = parseInt(maxCapUSD * minTokenUnit / newEthPrice)
+
     assert.equal(expectedRate, rate2)
     assert.equal(expectedMinCap, minCap)
     assert.equal(expectedMaxCap, maxCap)
@@ -117,22 +107,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(SelfKeyCrowdsale.new(
       start,
       start,
-      wallet,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
-      goal
-    ))
-  })
-
-  it('does not allow empty wallet address', async () => {
-    await assertThrows(SelfKeyCrowdsale.new(
-      start,
-      end,
-      0x0,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
       goal
     ))
   })
