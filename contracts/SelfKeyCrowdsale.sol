@@ -95,24 +95,20 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Crowdsale contract constructor
      * @param _startTime — Unix timestamp representing the crowdsale start time
      * @param _endTime — Unix timestamp representing the crowdsale start time
-     * @param _wallet — address where all contributions should go to
-     * @param _foundationPool — SelfKey Foundation wallet address
-     * @param _foundersPool — Founding team token distribution pool
-     * @param _legalExpensesWallet — Address for allocatin legal expenses fee
      * @param _goal — Minimum amount of tokens expected to sell.
      */
     function SelfKeyCrowdsale(
         uint64 _startTime,
         uint64 _endTime,
-        address _wallet,
-        address _foundationPool,
-        address _foundersPool,
-        address _legalExpensesWallet,
+        //address _wallet,
+        //address _foundationPool,
+        //address _foundersPool,
+        //address _legalExpensesWallet,
         uint256 _goal
     ) public
     {
         require(_endTime > _startTime);
-        require(_wallet != 0x0);
+        //require(_wallet != 0x0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
         // mints all tokens and gives them to the crowdsale
@@ -121,26 +117,26 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         startTime = _startTime;
         endTime = _endTime;
-        wallet = _wallet;
-        foundationPool = _foundationPool;
-        foundersPool = _foundersPool;
-        legalExpensesWallet = _legalExpensesWallet;
+        //wallet = _wallet;
+        //foundationPool = _foundationPool;
+        //foundersPool = _foundersPool;
+        //legalExpensesWallet = _legalExpensesWallet;
         goal = _goal;
 
-        vault = new KYCRefundVault(wallet);
+        vault = new KYCRefundVault(CROWDSALE_WALLET_ADDR);
 
         // Set timelockss to 6 months and a year after startTime, respectively
         uint64 unlockAt1 = uint64(startTime + 15552000);
         uint64 unlockAt2 = uint64(startTime + 31104000);
-        timelockFounders1 = new TokenTimelock(token, foundersPool, unlockAt1);
-        timelockFounders2 = new TokenTimelock(token, foundersPool, unlockAt2);
+        timelockFounders1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, unlockAt1);
+        timelockFounders2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, unlockAt2);
 
         // Genesis allocation of tokens
-        token.safeTransfer(foundersPool, FOUNDERS_TOKENS);
-        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(FOUNDERS_POOL_ADDR, FOUNDERS_TOKENS);
+        token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
         token.safeTransfer(timelockFounders1, FOUNDERS_TOKENS_VESTED_1);
         token.safeTransfer(timelockFounders2, FOUNDERS_TOKENS_VESTED_2);
-        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
+        token.safeTransfer(LEGAL_EXPENSES_ADDR, LEGAL_EXPENSES_TOKENS);
     }
 
     /**
