@@ -168,10 +168,22 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
     it('enables token transfers after finalization', async () => {
       const sendAmount = web3.toWei(1, 'ether')
+      const swapAmount = 500000
 
+      // test transfer method
       await tokenContract.transfer(receiver, sendAmount, { from: buyer })
       const newBalance = await tokenContract.balanceOf.call(receiver)
       assert.equal(sendAmount, newBalance)
+
+      // test transferFrom method
+      await tokenContract.approve(buyer2, swapAmount * 2, { from: buyer })
+      const balance1before = await tokenContract.balanceOf.call(buyer)
+      const balance2before = await tokenContract.balanceOf.call(buyer2)
+      await tokenContract.transferFrom(buyer, buyer2, swapAmount, { from: buyer2 })
+      const balance1after = await tokenContract.balanceOf.call(buyer)
+      const balance2after = await tokenContract.balanceOf.call(buyer2)
+      assert.equal(balance1before.minus(balance1after), swapAmount)
+      assert.equal(balance2after.minus(balance2before), swapAmount)
     })
   })
 
@@ -260,7 +272,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await crowdsaleContract.finalize()
       let finalized = await crowdsaleContract.isFinalized.call()
       assert.isTrue(finalized)
+    })
 
+    it('should have cleared all locked balances (addresses pending for verification)', async () => {
       lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
       lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
 
