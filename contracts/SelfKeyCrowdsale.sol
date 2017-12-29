@@ -404,4 +404,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // All tokens held by this contract get burned
         token.burn(token.balanceOf(this));
     }
+
+    function getCurrentTime() public view returns (uint256) {
+      return now;
+    }
 }

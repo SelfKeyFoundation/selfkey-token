@@ -3,7 +3,7 @@ const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
 const { goal } = require('./utils/common')
 
-contract('SelfKeyToken', (accounts) => {
+/*contract('SelfKeyToken', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
   const end = start + 31622400 // 1 year from start
@@ -48,3 +48,4 @@ contract('SelfKeyToken', (accounts) => {
     })
   })
 })
+*/
