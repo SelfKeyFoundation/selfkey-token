@@ -4,7 +4,9 @@ const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/Token
 const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
 
 const assertThrows = require('./utils/assertThrows')
+const timeTravel = require('./utils/timeTravel')
 const { goal } = require('./utils/common')
+
 
 contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
@@ -162,7 +164,11 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const contractBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
       // check unsold tokens were effectively burned
       assert.equal(contractBalance, 0)
-      // check tokens are now transferrable
+    })
+
+    it('enables token transfers after finalization', async () => {
+      const sendAmount = web3.toWei(1, 'ether')
+
       await tokenContract.transfer(receiver, sendAmount, { from: buyer })
       const newBalance = await tokenContract.balanceOf.call(receiver)
       assert.equal(sendAmount, newBalance)
@@ -244,21 +250,26 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await assertThrows(crowdsaleContract.claimRefund({ from: buyer2 }))
     })
 
-    it('should allow finalization', async () => {
+    it('should allow finalization, with pending KYC cases cleared', async () => {
+      let lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+      let lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
+
+      assert.isAbove(lockedBalance, 0)
+      assert.isAbove(lockedBalance2, 0)
+
       await crowdsaleContract.finalize()
       let finalized = await crowdsaleContract.isFinalized.call()
       assert.isTrue(finalized)
+
+      lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+      lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
+
+      assert.equal(lockedBalance, 0)
+      assert.equal(lockedBalance2, 0)
     })
 
     it('does not allow finalize to be re-invoked', async () => {
       await assertThrows(crowdsaleContract.finalize())
-    })
-
-    it('should properly reset all locked token balances', async () => {
-      let lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
-      let lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
-      assert.equal(lockedBalance, 0)
-      assert.equal(lockedBalance2, 0)
     })
 
     it('should enable refunds for unverified participants', async () => {
@@ -270,6 +281,30 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       assert.isAbove(Number(afterBalance1), Number(preBalance1))
       assert.isAbove(Number(afterBalance2), Number(preBalance2))
+    })
+
+    it('should allow the release of locked tokens for the founders', async () => {
+      const sixMonths = 15552000
+      const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR.call()
+      const expectedRelease1 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call();
+      const expectedRelease2 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call();
+
+      // forward time 6 months
+      await timeTravel(sixMonths)
+
+      // test first timelock release
+      const foundersBalance1 = await tokenContract.balanceOf(foundersPool)
+      await crowdsaleContract.releaseLockFounders1()
+      const foundersBalance2 = await tokenContract.balanceOf(foundersPool)
+      assert.equal(Number(foundersBalance2), Number(foundersBalance1) + Number(expectedRelease1))
+
+      // forward time an additional 6 months
+      await timeTravel(sixMonths)
+
+      // test second timelock release
+      await crowdsaleContract.releaseLockFounders2()
+      const foundersBalance3 = await tokenContract.balanceOf(foundersPool)
+      assert.equal(Number(foundersBalance3), Number(foundersBalance2) + Number(expectedRelease2))
     })
   })
 })
