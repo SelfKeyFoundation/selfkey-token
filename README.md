@@ -1,5 +1,7 @@
 # SelfKey Token
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/SelfKeyFoundation/selfkey-token.svg)](https://greenkeeper.io/)
+
 An `ERC20` token used to fuel a wide range of KYC related dapps
 
 * `develop` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=develop)](https://travis-ci.org/SelfKeyFoundation/selfkey-token) [![codecov](https://codecov.io/gh/SelfKeyFoundation/selfkey-token/branch/develop/graph/badge.svg)](https://codecov.io/gh/SelfKeyFoundation/selfkey-token)
