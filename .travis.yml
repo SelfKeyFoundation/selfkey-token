@@ -19,6 +19,8 @@ cache:
 before_script: greenkeeper-lockfile-update
 
 script:
+- npm run lint:sol
+- npm run lint:js
 - npm run test:cov
 - codecov
 
