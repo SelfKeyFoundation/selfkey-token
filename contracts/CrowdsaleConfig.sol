@@ -16,7 +16,7 @@ contract CrowdsaleConfig {
     uint256 public constant SALE_CAP = 1980000000 * MIN_TOKEN_UNIT;
 
     // Minimum cap per purchaser on public sale = $50 in KEY (at $0.015)
-    uint256 public constant PURCHASER_MIN_TOKEN_CAP = 33333 * MIN_TOKEN_UNIT;
+    uint256 public constant PURCHASER_MIN_TOKEN_CAP = 3333 * MIN_TOKEN_UNIT;
 
     // Maximum cap per purchaser on public sale = $18,000 in KEY (at $0.015)
     uint256 public constant PURCHASER_MAX_TOKEN_CAP = 1200000 * MIN_TOKEN_UNIT;
