@@ -68,8 +68,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
       const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
       const expectedFoundersTokens = await crowdsaleContract.FOUNDERS_TOKENS.call()
-      const expectedtimelockFounders1Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
-      const expectedtimelockFounders2Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
+      const expectedtimelockFounders1Tokens =
+        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
+      const expectedtimelockFounders2Tokens =
+        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
@@ -260,7 +262,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Verify 1 buyer only
       await crowdsaleContract.verifyKYC(buyer)
-      let verified = await crowdsaleContract.kycVerified.call(buyer)
+      const verified = await crowdsaleContract.kycVerified.call(buyer)
       assert.isTrue(verified)
     })
 
@@ -269,20 +271,20 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('should allow finalization, with pending KYC cases cleared', async () => {
-      let lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
-      let lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
+      const lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+      const lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
 
       assert.isAbove(lockedBalance, 0)
       assert.isAbove(lockedBalance2, 0)
 
       await crowdsaleContract.finalize()
-      let finalized = await crowdsaleContract.isFinalized.call()
+      const finalized = await crowdsaleContract.isFinalized.call()
       assert.isTrue(finalized)
     })
 
     it('should have cleared all locked balances (addresses pending for verification)', async () => {
-      lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
-      lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
+      const lockedBalance = await crowdsaleContract.lockedBalance.call(buyer2)
+      const lockedBalance2 = await crowdsaleContract.lockedBalance.call(buyer3)
 
       assert.equal(lockedBalance, 0)
       assert.equal(lockedBalance2, 0)
@@ -306,8 +308,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('should allow the release of locked tokens for the founders', async () => {
       const sixMonths = 15552000
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR.call()
-      const expectedRelease1 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call();
-      const expectedRelease2 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call();
+      const expectedRelease1 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
+      const expectedRelease2 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
 
       // forward time 6 months
       await timeTravel(sixMonths)
