@@ -130,7 +130,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(sendAmount, refundBalance)
 
       // user claims refund
-      await crowdsaleContract.claimRefund({ from: buyer2 })
+      await crowdsaleContract.claimRefund(buyer2)
       const balance3 = web3.eth.getBalance(buyer2)
       assert.isAbove(Number(balance3), Number(balance2))
     })
@@ -228,7 +228,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await crowdsaleContract.finalize()
       const balance1 = web3.eth.getBalance(buyer)
       // issue refund
-      await crowdsaleContract.claimRefund({ from: buyer })
+      await crowdsaleContract.claimRefund(buyer)
       const balance2 = web3.eth.getBalance(buyer)
       // check buyer balance increases
       assert.isAbove(Number(balance2), Number(balance1))
@@ -265,7 +265,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('should not allow refund before finalization', async () => {
-      await assertThrows(crowdsaleContract.claimRefund({ from: buyer2 }))
+      await assertThrows(crowdsaleContract.claimRefund(buyer2))
     })
 
     it('should allow finalization, with pending KYC cases cleared', async () => {
@@ -293,8 +293,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('should enable refunds for unverified participants', async () => {
-      await crowdsaleContract.claimRefund({ from: buyer2 })
-      await crowdsaleContract.claimRefund({ from: buyer3 })
+      await crowdsaleContract.claimRefund(buyer2)
+      await crowdsaleContract.claimRefund(buyer3)
 
       const afterBalance1 = web3.eth.getBalance(buyer2)
       const afterBalance2 = web3.eth.getBalance(buyer3)
