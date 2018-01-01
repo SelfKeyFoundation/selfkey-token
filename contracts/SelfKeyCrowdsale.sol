@@ -249,17 +249,17 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
 
     /**
-     * @dev If crowdsale is unsuccessful, investors can claim refunds.
+     * @dev If crowdsale is unsuccessful or participant was KYCrejected, a refund can be claimed back
      */
-    function claimRefund() public {
+    function claimRefund(address participant) public {
         // requires sale to be finalized and goal not reached,
         // unless sender has been enabled explicitly
-        if (!vault.refundEnabled(msg.sender)) {
+        if (!vault.refundEnabled(participant)) {
             require(isFinalized);
             require(!goalReached());
         }
 
-        vault.refund(msg.sender);
+        vault.refund(participant);
     }
 
     /**
