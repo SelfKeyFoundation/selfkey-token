@@ -30,10 +30,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     // How many tokens a buyer gets per ETH
     uint256 public rate = 51800;
 
-    // Caps per purchaser during public sale
-    uint256 public minCapWei = 128700129000000000;
-    uint256 public maxCapWei = 6435006435000000000;
-
     // ETH price in USD, can be later updated until start date
     uint256 public ethPrice = 777;
 
@@ -45,7 +41,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     mapping(address => bool) public kycVerified;
     mapping(address => uint256) public lockedBalance;
-    mapping(address => uint256) public weiContributed;
+    mapping(address => uint256) public tokensPurchased;
 
     // an array for keeping track of all addresses still pending for KYC verification
     address[] private lockedAddress;
@@ -146,12 +142,12 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint256 tokens = weiAmount.mul(rate);
 
         // Update state
-        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
+        tokensPurchased[beneficiary] = tokensPurchased[beneficiary].add(tokens);
         totalPurchased = totalPurchased.add(tokens);
 
         require(totalPurchased <= SALE_CAP);
-        require(weiContributed[beneficiary] >= minCapWei);
-        require(weiContributed[beneficiary] <= maxCapWei);
+        require(tokensPurchased[beneficiary] >= PURCHASER_MIN_TOKEN_CAP);
+        require(tokensPurchased[beneficiary] <= PURCHASER_MAX_TOKEN_CAP);
 
         if (kycVerified[beneficiary]) {
             token.safeTransfer(beneficiary, tokens);
@@ -180,8 +176,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         ethPrice = _ethPrice;
         rate = ethPrice.mul(1000).div(TOKEN_PRICE_THOUSANDTH);
-        minCapWei = PURCHASER_MIN_CAP_USD.mul(MIN_TOKEN_UNIT).div(ethPrice);
-        maxCapWei = PURCHASER_MAX_CAP_USD.mul(MIN_TOKEN_UNIT).div(ethPrice);
     }
 
     /**
@@ -322,7 +316,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             uint256 tokens = resetLockedBalance(participant);
 
             totalPurchased = totalPurchased.sub(tokens);
-            weiContributed[participant] = 0;
+            tokensPurchased[participant] = 0;
 
             // enable vault funds as refundable for this participant address
             vault.enableKYCRefund(participant);
@@ -348,7 +342,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
             // revert contributions recorded for this participant
             totalPurchased = totalPurchased.sub(tokens);
-            weiContributed[participant] = 0;
+            tokensPurchased[participant] = 0;
 
             // enable vault funds as refundable for this participant address
             vault.enableKYCRefund(participant);
@@ -374,10 +368,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         kycVerified[beneficiary] = true;    // KYC was already done off-chain
         uint256 tokens = tokensAllocated;
         totalPurchased = totalPurchased.add(tokens);
+        tokensPurchased[beneficiary] = tokensPurchased[beneficiary].add(tokens);
 
         if (halfVesting) {
             // Calculates vesting release date for 6 months after start time
-            uint64 vestingSeconds = 6 * 30 days;
+            uint64 vestingSeconds = 15552000;
             uint64 endTimeLock = uint64(startTime + vestingSeconds);
 
             // Sets a timelock for half the tokens allocated

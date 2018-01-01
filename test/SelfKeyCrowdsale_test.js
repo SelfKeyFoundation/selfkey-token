@@ -136,14 +136,20 @@ contract('SelfKeyCrowdsale', (accounts) => {
     })
 
     it('does not allow contributions below minimum cap per purchaser', async () => {
-      const purchaseMinCap = await crowdsaleContract.minCapWei.call()
-      const sendAmount = Number(purchaseMinCap) - SIGNIFICANT_AMOUNT
+      const minTokenCap = await crowdsaleContract.PURCHASER_MIN_TOKEN_CAP.call()
+      const rate = await crowdsaleContract.rate.call()
+      const minWei = Number(minTokenCap) / Number(rate)
+      const sendAmount = minWei - SIGNIFICANT_AMOUNT
+
       assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
     })
 
     it('does not allow contributions above maximum cap per purchaser', async () => {
-      const purchaseMaxCap = await crowdsaleContract.maxCapWei.call()
-      const sendAmount = Number(purchaseMaxCap) + SIGNIFICANT_AMOUNT
+      const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
+      const rate = await crowdsaleContract.rate.call()
+      const maxWei = Number(maxTokenCap) / Number(rate)
+      const sendAmount = maxWei + SIGNIFICANT_AMOUNT
+
       assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
     })
 

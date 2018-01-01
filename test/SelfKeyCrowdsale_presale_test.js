@@ -74,21 +74,12 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     // Set new ETH price and get related attributes
     await presaleCrowdsale.setEthPrice(newEthPrice)
     const rate2 = await presaleCrowdsale.rate.call()
-    const minCap = await presaleCrowdsale.minCapWei.call()
-    const maxCap = await presaleCrowdsale.maxCapWei.call()
     const keyPrice = await presaleCrowdsale.TOKEN_PRICE_THOUSANDTH.call()
-    const minCapUSD = await presaleCrowdsale.PURCHASER_MIN_CAP_USD.call()
-    const maxCapUSD = await presaleCrowdsale.PURCHASER_MAX_CAP_USD.call()
-    const minTokenUnit = await presaleCrowdsale.MIN_TOKEN_UNIT.call()
 
     // Calculate rates and caps to compare
     const expectedRate = parseInt(newEthPrice * 1000 / keyPrice)
-    const expectedMinCap = parseInt(minCapUSD * minTokenUnit / newEthPrice)
-    const expectedMaxCap = parseInt(maxCapUSD * minTokenUnit / newEthPrice)
 
     assert.equal(expectedRate, rate2)
-    assert.equal(expectedMinCap, minCap)
-    assert.equal(expectedMaxCap, maxCap)
   })
 
   it('does not allow to set an ETH price equal to zero', async () => {
