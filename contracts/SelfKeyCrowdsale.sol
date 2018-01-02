@@ -45,12 +45,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     mapping(address => uint256) public lockedBalance;
     mapping(address => uint256) public tokensPurchased;
 
-    // an array for keeping track of all addresses still pending for KYC verification
-    address[] private lockedAddress;
-
-    // a mapping to retrieve the index of an address in lockedAddress arrray
-    mapping(address => uint256) private lockedIndex;
-
     // a mapping of dynamically instantiated token timelocks for each pre-commitment beneficiary
     mapping(address => address) public vestedTokens;
 
@@ -149,7 +143,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(!isFinalized);
         require(now > startTime);
 
-        clearPendingKYC();
         finalization();
         Finalized();
 
@@ -205,10 +198,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         kycVerified[participant] = true;
 
         if (lockedBalance[participant] > 0) {
-            uint256 tokens = resetLockedBalance(participant);
+            uint256 tokens = lockedBalance[participant];
+
+            // reset locked balance and substract from locked total
+            lockedTotal = lockedTotal.sub(tokens);
+            lockedBalance[participant] = 0;
+
+            // transfer locked tokens
             token.safeTransfer(participant, tokens);
         }
-
         VerifiedKYC(participant);
     }
 
@@ -221,15 +219,19 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         kycVerified[participant] = false;
 
         if (lockedBalance[participant] > 0) {
-            uint256 tokens = resetLockedBalance(participant);
+            uint256 tokens = lockedBalance[participant];
 
+            // substract locked tokens count for this participant
+            lockedTotal = lockedTotal.sub(tokens);
+            lockedBalance[participant] = 0;
+
+            // substract purchased tokens count for this participant
             totalPurchased = totalPurchased.sub(tokens);
             tokensPurchased[participant] = 0;
 
             // enable vault funds as refundable for this participant address
             vault.enableKYCRefund(participant);
         }
-
         RejectedKYC(participant);
     }
 
@@ -276,22 +278,14 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     *  Retreive the current blocktime.
-     *  @return The number of seconds since 1 Jan 1970 UTC.
-     */
-    function getCurrentTime() public view returns (uint256) {
-        return now;
-    }
-
-    /**
      *  @dev Low level token purchase. Only callable internally.
-     *  @param beneficiary — The address that ends up with the tokens.
+     *  @param participant — The address of the token purchaser
      */
-    function buyTokens(address beneficiary) internal {
+    function buyTokens(address participant) internal {
         require(now >= startTime);
         require(now < endTime);
         require(!isFinalized);
-        require(beneficiary != 0x0);
+        require(participant != 0x0);
         require(msg.value != 0);
 
         // Calculate the token amount to be allocated
@@ -299,74 +293,36 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint256 tokens = weiAmount.mul(rate);
 
         // Update state
-        tokensPurchased[beneficiary] = tokensPurchased[beneficiary].add(tokens);
+        tokensPurchased[participant] = tokensPurchased[participant].add(tokens);
         totalPurchased = totalPurchased.add(tokens);
 
         require(totalPurchased <= SALE_CAP);
-        require(tokensPurchased[beneficiary] >= PURCHASER_MIN_TOKEN_CAP);
-        require(tokensPurchased[beneficiary] <= PURCHASER_MAX_TOKEN_CAP);
+        require(tokensPurchased[participant] >= PURCHASER_MIN_TOKEN_CAP);
+        require(tokensPurchased[participant] <= PURCHASER_MAX_TOKEN_CAP);
 
-        if (kycVerified[beneficiary]) {
-            token.safeTransfer(beneficiary, tokens);
+        if (kycVerified[participant]) {
+            token.safeTransfer(participant, tokens);
         } else {
-            addLockedBalance(beneficiary, tokens);
+            lockedBalance[participant] = lockedBalance[participant].add(tokens);
+            lockedTotal = lockedTotal.add(tokens);
         }
 
         // Sends ETH contribution to the RefundVault
-        vault.deposit.value(msg.value)(beneficiary);
+        vault.deposit.value(msg.value)(participant);
 
         TokenPurchase(
             msg.sender,
-            beneficiary,
+            participant,
             weiAmount,
             tokens
         );
     }
 
     /**
-     * @dev Adds locked balance to a participant (purchased tokens pending for KYC verification)
-     * @param participant — Participant address
-     * @param tokens — Token amount to be allocated as locked balance
-     */
-    function addLockedBalance(address participant, uint256 tokens) internal {
-        require(tokens > 0);
-
-        // adds address to locked address array if it hasn't been added
-        if (lockedBalance[participant] == 0) {
-            lockedIndex[participant] = lockedAddress.length;
-            lockedAddress.push(participant);
-        }
-
-        lockedBalance[participant] = lockedBalance[participant].add(tokens);
-        lockedTotal = lockedTotal.add(tokens);
-    }
-
-    /**
-     * @dev Resets locked balance for a given participant
-     * @param participant — Participant address
-     */
-    function resetLockedBalance(address participant) internal returns (uint256) {
-        require(lockedBalance[participant] > 0);
-
-        // Address "deletion" from lockedAddress array
-        // it copies the last element to that index and "deletes" the last element
-        uint256 index = lockedIndex[participant];
-        lockedAddress[index] = lockedAddress[lockedAddress.length - 1];
-        lockedAddress.length = lockedAddress.length - 1;
-
-        uint256 tokens = lockedBalance[participant];
-
-        lockedTotal = lockedTotal.sub(lockedBalance[participant]);
-        lockedBalance[participant] = 0;
-
-        return tokens;
-    }
-
-    /**
      * @dev Additional finalization logic. Enables token transfers.
      */
     function finalization() internal {
-        require(lockedTotal == 0); // requires there are no pending KYC checks
+        //require(lockedTotal == 0); // requires there are no pending KYC checks
 
         if (goalReached()) {
             burnUnsold();
@@ -374,30 +330,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             token.enableTransfers();
         } else {
             vault.enableRefunds();
-        }
-    }
-
-    /**
-     * @dev Clears all pending KYC cases. This should be called by the finalization method
-     */
-    function clearPendingKYC() internal {
-        uint256 tokens;
-        address participant;
-
-        for (uint i; i < lockedAddress.length; i++) {
-            participant = lockedAddress[i];
-            tokens = lockedBalance[participant];
-
-            // reset overall locked token balance for this participant
-            lockedTotal = lockedTotal.sub(tokens);
-            lockedBalance[participant] = 0;
-
-            // revert contributions recorded for this participant
-            totalPurchased = totalPurchased.sub(tokens);
-            tokensPurchased[participant] = 0;
-
-            // enable vault funds as refundable for this participant address
-            vault.enableKYCRefund(participant);
         }
     }
 
