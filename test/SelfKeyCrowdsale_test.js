@@ -130,7 +130,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(timelockFounders2Balance, Number(expectedtimelockFounders2Tokens))
     })
 
-    it('receives ETH to buy tokens that get transferred to another address', async () => {
+    it('receives ETH for token purchase', async () => {
       const sendAmount = web3.toWei(2, 'ether')
       const vaultInitialBalance = await vaultContract.deposited.call(buyer)
       const rate = await crowdsaleContract.rate.call()
@@ -151,6 +151,16 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Check tokens are not yet transferrable until crowdsale is finalized
       await assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
+    })
+
+    it('transfers tokens to an already verified address on purchase', async () => {
+      const sendAmount = web3.toWei(1, 'ether')
+      const balance1 = await tokenContract.balanceOf.call(buyer)
+
+      // send ETH to crowdsale contract for token purchase
+      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
+      const balance2 = await tokenContract.balanceOf.call(buyer)
+      assert.isAbove(Number(balance2), Number(balance1))
     })
 
     it('allows refund for KYC-failed participants', async () => {
