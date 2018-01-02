@@ -1,6 +1,6 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 
-module.exports = (deployer, network, accounts) => {
+module.exports = (deployer) => {
   const now = new Date().getTime() / 1000
 
   // Test dates. Change to real dates before launch

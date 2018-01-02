@@ -43,7 +43,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
 
   it("adds 'pre-commitments' with vesting", async () => {
     const allocation = web3.toWei(10, 'ether')    // allocates 10 KEY
-    const balance1 = await presaleToken.balanceOf.call(buyer3)
+    // const balance1 = await presaleToken.balanceOf.call(buyer3)
 
     // test (half)timelocked pre-commitment
     await presaleCrowdsale.addPrecommitment(buyer3, allocation, true)
@@ -68,7 +68,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   })
 
   it('allows the updating of public sale conversion rate before sale starts', async () => {
-    const rate1 = await presaleCrowdsale.rate.call()
+    // const rate1 = await presaleCrowdsale.rate.call()
     const newEthPrice = 800
 
     // Set new ETH price and get related attributes
@@ -77,7 +77,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const keyPrice = await presaleCrowdsale.TOKEN_PRICE_THOUSANDTH.call()
 
     // Calculate rates and caps to compare
-    const expectedRate = parseInt(newEthPrice * 1000 / keyPrice)
+    const expectedRate = parseInt((newEthPrice * 1000) / keyPrice, 10)
 
     assert.equal(expectedRate, rate2)
   })
