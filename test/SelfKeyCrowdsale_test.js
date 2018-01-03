@@ -15,7 +15,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
   const SIGNIFICANT_AMOUNT = 2048
 
-  const [buyer, buyer2, buyer3, buyer4, buyer5, buyer6, receiver] = accounts.slice(1)
+  const [buyer, buyer2, buyer3, buyer4, buyer5, receiver] = accounts.slice(1)
 
   let crowdsaleContract
   let tokenContract
@@ -210,7 +210,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('does not allow contributions above $18000 per purchaser afterwards', async () => {
       timeTravel(86400)   // fast forward 1 day
 
-      //it does allow purchases > $3000 after day 1
+      // it does allow purchases > $3000 after day 1
       let maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       let rate = await crowdsaleContract.rate.call()
       let maxWei = Number(maxTokenCap) / Number(rate)
