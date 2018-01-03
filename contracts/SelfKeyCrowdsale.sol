@@ -299,7 +299,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(totalPurchased <= SALE_CAP);
         require(tokensPurchased[participant] >= PURCHASER_MIN_TOKEN_CAP);
 
-        if(now < startTime + 86400) {
+        if (now < startTime + 86400) {
             // if still during the first day of token sale, apply different max cap
             require(tokensPurchased[participant] <= PURCHASER_MAX_TOKEN_CAP_DAY1);
         } else {
