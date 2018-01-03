@@ -21,6 +21,9 @@ contract CrowdsaleConfig {
     // Maximum cap per purchaser on public sale = $18,000 in KEY (at $0.015)
     uint256 public constant PURCHASER_MAX_TOKEN_CAP = 1200000 * MIN_TOKEN_UNIT;
 
+    // Maximum cap per purchaser on first day of public sale = $3,000 in KEY (at $0.015)
+    uint256 public constant PURCHASER_MAX_TOKEN_CAP_DAY1 = 200000 * MIN_TOKEN_UNIT;
+
     // approx 49.5%
     uint256 public constant FOUNDATION_POOL_TOKENS = 2970000000 * MIN_TOKEN_UNIT;
 
