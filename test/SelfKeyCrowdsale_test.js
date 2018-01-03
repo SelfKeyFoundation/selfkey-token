@@ -15,7 +15,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
   const SIGNIFICANT_AMOUNT = 2048
 
-  const [buyer, buyer2, buyer3, receiver] = accounts.slice(1)
+  const [buyer, buyer2, buyer3, buyer4, buyer5, buyer6, receiver] = accounts.slice(1)
 
   let crowdsaleContract
   let tokenContract
@@ -198,13 +198,34 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
     })
 
-    it('does not allow contributions above maximum cap per purchaser', async () => {
-      const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
+    it('does not allow contributions above $3000 per purchaser on day 1', async () => {
+      const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
       const maxWei = Number(maxTokenCap) / Number(rate)
       const sendAmount = maxWei + SIGNIFICANT_AMOUNT
 
       assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+    })
+
+    it('does not allow contributions above $18000 per purchaser afterwards', async () => {
+      timeTravel(86400)   // fast forward 1 day
+
+      //it does allow purchases > $3000 after day 1
+      let maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
+      let rate = await crowdsaleContract.rate.call()
+      let maxWei = Number(maxTokenCap) / Number(rate)
+      let sendAmount = maxWei + SIGNIFICANT_AMOUNT
+
+      await crowdsaleContract.sendTransaction({ from: buyer4, value: sendAmount })
+      const buyer4LockedBalance = await crowdsaleContract.lockedBalance.call(buyer4)
+      assert.isAbove(Number(buyer4LockedBalance), Number(maxTokenCap))
+
+      maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
+      rate = await crowdsaleContract.rate.call()
+      maxWei = Number(maxTokenCap) / Number(rate)
+      sendAmount = maxWei + SIGNIFICANT_AMOUNT
+
+      assertThrows(crowdsaleContract.sendTransaction({ from: buyer5, value: sendAmount }))
     })
 
     it('does not allow updating ETH price if sale has already started', () => {
