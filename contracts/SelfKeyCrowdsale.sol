@@ -132,21 +132,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Additional finalization logic. Enables token transfers.
-     */
-    function finalization() internal {
-        //require(lockedTotal == 0); // requires there are no pending KYC checks
-
-        if (goalReached()) {
-            burnUnsold();
-            vault.close();
-            token.enableTransfers();
-        } else {
-            vault.enableRefunds();
-        }
-    }
-
-    /**
      * @dev Must be called after crowdsale ends, to do some extra finalization
      *      work. Calls the contract's finalization function.
      */
@@ -258,6 +243,21 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         );
     }
 
+    /**
+     * @dev Additional finalization logic. Enables token transfers.
+     */
+    function finalization() internal {
+        //require(lockedTotal == 0); // requires there are no pending KYC checks
+
+        if (goalReached()) {
+            burnUnsold();
+            vault.close();
+            token.enableTransfers();
+        } else {
+            vault.enableRefunds();
+        }
+    }
+    
     /**
      *  @dev Low level token purchase. Only callable internally. Participants MUST be KYC-verified before purchase
      *  @param participant — The address of the token purchaser

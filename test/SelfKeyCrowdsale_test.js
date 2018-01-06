@@ -119,8 +119,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
       const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
       const expectedFoundersTokens = await crowdsaleContract.FOUNDERS_TOKENS.call()
-      const expectedtimelockFounders1Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
-      const expectedtimelockFounders2Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
+      const expectedtimelockFounders1Tokens =
+        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
+      const expectedtimelockFounders2Tokens =
+        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
@@ -223,7 +225,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
       const maxWei = Number(maxTokenCap) / Number(rate)
-      const sendAmount = maxWei //+ SIGNIFICANT_AMOUNT
+      const sendAmount = maxWei
 
       await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
     })
@@ -328,7 +330,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sendAmount = 9        // KEY
 
       // check sender has enough tokens
-      let senderBalance = await tokenContract.balanceOf(sender)
+      const senderBalance = await tokenContract.balanceOf(sender)
       assert.isAtLeast(senderBalance, sendAmount)
 
       // test transfer method
@@ -339,7 +341,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // approve a middleman to make transfer on behalf of sender
       await tokenContract.approve(middleman, sendAmount, { from: sender })
-      let senderBalance1 = await tokenContract.balanceOf.call(sender)
+      const senderBalance1 = await tokenContract.balanceOf.call(sender)
       receiverBalance1 = await tokenContract.balanceOf.call(receiver)
 
       // test unsuccessful transferFrom invocation (above the approved amount)
@@ -347,11 +349,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
         sender,
         receiver,
         sendAmount + 1,
-        { from: middleman }))
+        { from: middleman }
+      ))  // function-paren-newline
 
       // test successful transferFrom invocation
       await tokenContract.transferFrom(sender, receiver, sendAmount, { from: middleman })
-      let senderBalance2 = await tokenContract.balanceOf.call(sender)
+      const senderBalance2 = await tokenContract.balanceOf.call(sender)
       receiverBalance2 = await tokenContract.balanceOf.call(receiver)
 
       assert.equal(senderBalance1.minus(senderBalance2), sendAmount)
