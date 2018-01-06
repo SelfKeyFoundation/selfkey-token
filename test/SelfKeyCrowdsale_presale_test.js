@@ -95,10 +95,6 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   })
 
   it('does not allow end date to be earlier or the same than start date', async () => {
-    await assertThrows(SelfKeyCrowdsale.new(
-      start,
-      start,
-      goal
-    ))
+    await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
   })
 })

@@ -1,7 +1,7 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/TokenTimelock.sol')
-const KYCRefundVault = artifacts.require('./KYCRefundVault.sol')
+const RefundVault = artifacts.require('zeppelin-solidity/contracts/crowdsale/RefundVault.sol')
 
 const assertThrows = require('./utils/assertThrows')
 const timeTravel = require('./utils/timeTravel')
@@ -11,11 +11,11 @@ const { goal } = require('./utils/common')
 contract('SelfKeyCrowdsale', (accounts) => {
   const now = (new Date()).getTime() / 1000
   const start = now
-  const end = start + 31622400 // 1 year from start
+  const end = start + 1296000   // 15 days after start
 
   const SIGNIFICANT_AMOUNT = 2048
 
-  const [buyer, buyer2, buyer3, buyer4, buyer5, receiver] = accounts.slice(1)
+  const [buyer, buyer2, buyer3, buyer4, buyer5, receiver, middleman] = accounts.slice(1)
 
   let crowdsaleContract
   let tokenContract
@@ -40,7 +40,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       timelockFounders1Contract = await TokenTimelock.at(timelockFounders1)
       timelockFounders2Contract = await TokenTimelock.at(timelockFounders2)
       const vaultAddress = await crowdsaleContract.vault.call()
-      vaultContract = await KYCRefundVault.at(vaultAddress)
+      vaultContract = await RefundVault.at(vaultAddress)
     })
 
     it('deployed with the right owner', async () => {
@@ -52,14 +52,25 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
     it('allows refunds', async () => {
       // Purchase equivalent of <sendAmount> in tokens
-      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
-      // finalize sale
+      const REFUNDING = 1
       await crowdsaleContract.verifyKYC(buyer)
+      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
+
+      // check no refund can be claimed before finalization
+      await assertThrows(crowdsaleContract.claimRefund(buyer))
+
+      // finalize sale and check it was not successful
       await crowdsaleContract.finalize()
-      const balance1 = web3.eth.getBalance(buyer)
+      const goalReached = await crowdsaleContract.goalReached.call()
+      assert.isFalse(goalReached)
+      const vaultState = await vaultContract.state.call()
+      assert.equal(vaultState, REFUNDING)
+
       // issue refund
+      const balance1 = web3.eth.getBalance(buyer)
       await crowdsaleContract.claimRefund(buyer)
       const balance2 = web3.eth.getBalance(buyer)
+
       // check buyer balance increases
       assert.isAbove(Number(balance2), Number(balance1))
     })
@@ -79,23 +90,19 @@ contract('SelfKeyCrowdsale', (accounts) => {
       timelockFounders1Contract = await TokenTimelock.at(timelockFounders1)
       timelockFounders2Contract = await TokenTimelock.at(timelockFounders2)
       const vaultAddress = await crowdsaleContract.vault.call()
-      vaultContract = await KYCRefundVault.at(vaultAddress)
+      vaultContract = await RefundVault.at(vaultAddress)
     })
 
-    it('deployed with the right owner', async () => {
+    it('deploys and instantiates all derived contracts', async () => {
       assert.isNotNull(crowdsaleContract)
       assert.isNotNull(tokenContract)
-      const owner = await tokenContract.owner.call()
-      assert.equal(owner, crowdsaleContract.address)
-    })
-
-    it('created token timelocks', () => {
+      assert.isNotNull(vaultContract)
       assert.isNotNull(timelockFounders1Contract)
       assert.isNotNull(timelockFounders2Contract)
-    })
 
-    it('created the Refund Vault', () => {
-      assert.isNotNull(vaultContract)
+      // check token contract owner is the crowdsale contract
+      const owner = await tokenContract.owner.call()
+      assert.equal(owner, crowdsaleContract.address)
     })
 
     it('distributed the initial token amounts correctly', async () => {
@@ -110,10 +117,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
       const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
       const expectedFoundersTokens = await crowdsaleContract.FOUNDERS_TOKENS.call()
-      const expectedtimelockFounders1Tokens =
-        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
-      const expectedtimelockFounders2Tokens =
-        await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
+      const expectedtimelockFounders1Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
+      const expectedtimelockFounders2Tokens = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
@@ -130,63 +135,49 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(timelockFounders2Balance, Number(expectedtimelockFounders2Tokens))
     })
 
-    it('receives ETH for token purchase', async () => {
+    it('allows KYC verification of participant address', async () => {
+      // check address is initially unverified
+      let verified = await crowdsaleContract.kycVerified.call(buyer)
+      assert.isFalse(verified)
+
+      // verify KYC status for buyer address
+      await crowdsaleContract.verifyKYC(buyer)
+
+      // check the address is now verified
+      verified = await crowdsaleContract.kycVerified.call(buyer)
+      assert.isTrue(verified)
+    })
+
+    it('does not allow purchase for unverified participants', async () => {
       const sendAmount = web3.toWei(2, 'ether')
+
+      // attempt sending ETH from an unverified address
+      const verified = await crowdsaleContract.kycVerified.call(buyer2)
+      assert.isFalse(verified)
+      await assertThrows(crowdsaleContract.sendTransaction({ from: buyer2, value: sendAmount }))
+    })
+
+    it('allows token purchases for verified participants', async () => {
       const vaultInitialBalance = await vaultContract.deposited.call(buyer)
       const rate = await crowdsaleContract.rate.call()
+      const sender = buyer3
 
-      // send ETH to crowdsale contract for buying KEY
-      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
-      const lockedBalance = await crowdsaleContract.lockedBalance.call(buyer)
-      assert.equal(Number(lockedBalance), sendAmount * rate)
+      // verify buyer address
+      await crowdsaleContract.verifyKYC(sender)
+      const verified = await crowdsaleContract.kycVerified.call(sender)
+      assert.isTrue(verified)
+
+      // send ETH to the contract to purchase tokens
+      const sendAmount = web3.toWei(2, 'ether')
+      await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      const buyerBalance = await tokenContract.balanceOf.call(sender)
+
+      // check allocated amount corresponds to the set exchange rate according to ETH price
+      assert.equal(Number(buyerBalance), sendAmount * rate)
 
       // Check wei added to the vault is correct
-      const vaultNewBalance = await vaultContract.deposited.call(buyer)
-      assert.equal(vaultNewBalance - vaultInitialBalance, sendAmount)
-
-      // verify KYC for buyer and check tokens were transferred to the buyer
-      await crowdsaleContract.verifyKYC(buyer)
-      const newBalance = await tokenContract.balanceOf.call(buyer)
-      assert.equal(Number(newBalance), sendAmount * rate)
-
-      // Check tokens are not yet transferrable until crowdsale is finalized
-      await assertThrows(tokenContract.transfer(receiver, 5, { from: buyer }))
-    })
-
-    it('transfers tokens to an already verified address on purchase', async () => {
-      const sendAmount = web3.toWei(1, 'ether')
-      const balance1 = await tokenContract.balanceOf.call(buyer)
-
-      // send ETH to crowdsale contract for token purchase
-      await crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount })
-      const balance2 = await tokenContract.balanceOf.call(buyer)
-      assert.isAbove(Number(balance2), Number(balance1))
-    })
-
-    it('allows refund for KYC-failed participants', async () => {
-      const sendAmount = web3.toWei(1, 'ether')
-
-      // send ETH to crowdsale contract for buying KEY
-      await crowdsaleContract.sendTransaction({ from: buyer2, value: sendAmount })
-      const balance2 = web3.eth.getBalance(buyer2)
-      let newBalance = await crowdsaleContract.lockedBalance.call(buyer2)
-
-      // check tokens were effectively allocated (locked) to the participant
-      assert.isAbove(Number(newBalance), 0)
-      await crowdsaleContract.rejectKYC(buyer2)
-      newBalance = await crowdsaleContract.lockedBalance.call(buyer2)
-
-      // check allocated tokens to the participant are reset now
-      assert.equal(Number(newBalance), 0)
-
-      // check refund was enabled correctly
-      const refundBalance = await vaultContract.toRefund.call(buyer2)
-      assert.equal(sendAmount, refundBalance)
-
-      // user claims refund
-      await crowdsaleContract.claimRefund(buyer2)
-      const balance3 = web3.eth.getBalance(buyer2)
-      assert.isAbove(Number(balance3), Number(balance2))
+      const vaultNewBalance = await vaultContract.deposited.call(sender)
+      assert.equal(Number(vaultNewBalance) - Number(vaultInitialBalance), sendAmount)
     })
 
     it('does not allow contributions below minimum cap per purchaser', async () => {
@@ -195,80 +186,158 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const minWei = Number(minTokenCap) / Number(rate)
       const sendAmount = minWei - SIGNIFICANT_AMOUNT
 
-      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+      // verify new purchaser
+      await crowdsaleContract.verifyKYC(buyer4)
+      const verified = await crowdsaleContract.kycVerified.call(buyer4)
+      assert.isTrue(verified)
+
+      // check below cap transaction fails
+      await assertThrows(crowdsaleContract.sendTransaction({ from: buyer4, value: sendAmount }))
+    })
+
+    it('does allow contributions above minimum purchaser cap', async () => {
+      const minTokenCap = await crowdsaleContract.PURCHASER_MIN_TOKEN_CAP.call()
+      const rate = await crowdsaleContract.rate.call()
+      const minWei = Number(minTokenCap) / Number(rate)
+      const sendAmount = minWei + SIGNIFICANT_AMOUNT
+      const balance1 = await tokenContract.balanceOf(buyer4)
+
+      await crowdsaleContract.sendTransaction({ from: buyer4, value: sendAmount })
+      const balance2 = await tokenContract.balanceOf(buyer4)
+      assert.isAbove(Number(balance2), Number(balance1))
     })
 
     it('does not allow contributions above $3000 per purchaser on day 1', async () => {
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
       const maxWei = Number(maxTokenCap) / Number(rate)
-      const sendAmount = maxWei + SIGNIFICANT_AMOUNT
+      const sendAmount = maxWei //+ SIGNIFICANT_AMOUNT
 
-      assertThrows(crowdsaleContract.sendTransaction({ from: buyer3, value: sendAmount }))
+      await assertThrows(crowdsaleContract.sendTransaction({ from: buyer4, value: sendAmount }))
     })
 
-    it('does not allow contributions above $18000 per purchaser afterwards', async () => {
+    it('allows contributions above $3000 after day 1', async () => {
       timeTravel(86400)   // fast forward 1 day
 
-      // it does allow purchases > $3000 after day 1
-      let maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
-      let rate = await crowdsaleContract.rate.call()
-      let maxWei = Number(maxTokenCap) / Number(rate)
-      let sendAmount = maxWei + SIGNIFICANT_AMOUNT
+      const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
+      const rate = await crowdsaleContract.rate.call()
+      const maxWei = Number(maxTokenCap) / Number(rate)
+      const sendAmount = maxWei + SIGNIFICANT_AMOUNT
+      const balance1 = await tokenContract.balanceOf(buyer4)
 
       await crowdsaleContract.sendTransaction({ from: buyer4, value: sendAmount })
-      const buyer4LockedBalance = await crowdsaleContract.lockedBalance.call(buyer4)
-      assert.isAbove(Number(buyer4LockedBalance), Number(maxTokenCap))
+      const balance2 = await tokenContract.balanceOf(buyer4)
+      assert.isAbove(Number(balance2), Number(balance1))
+    })
 
-      maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
-      rate = await crowdsaleContract.rate.call()
-      maxWei = Number(maxTokenCap) / Number(rate)
-      sendAmount = maxWei + SIGNIFICANT_AMOUNT
+    it('does not allow contributions above $18000 after day 1', async () => {
+      const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
+      const rate = await crowdsaleContract.rate.call()
+      const maxWei = Number(maxTokenCap) / Number(rate)
+      let sendAmount = maxWei + SIGNIFICANT_AMOUNT
 
-      assertThrows(crowdsaleContract.sendTransaction({ from: buyer5, value: sendAmount }))
+      // verify new purchaser
+      await crowdsaleContract.verifyKYC(buyer5)
+      const verified = await crowdsaleContract.kycVerified.call(buyer5)
+      assert.isTrue(verified)
+
+      // check transaction fails because purchase is above cap
+      await assertThrows(crowdsaleContract.sendTransaction({ from: buyer5, value: sendAmount }))
+
+      // check participant can still purchase slightly above the max cap
+      sendAmount = maxWei - SIGNIFICANT_AMOUNT
+      const balance1 = await tokenContract.balanceOf(buyer5)
+      crowdsaleContract.sendTransaction({ from: buyer5, value: sendAmount })
+      const balance2 = await tokenContract.balanceOf(buyer5)
+      assert.isAbove(Number(balance2), Number(balance1))
     })
 
     it('does not allow updating ETH price if sale has already started', () => {
       assertThrows(crowdsaleContract.setEthPrice(999))
     })
 
-    it('can finalize token sale', async () => {
-      const sendAmount = web3.toWei(1, 'ether')
+    it('does not allow contributions after end date', async () => {
+      // fast forwards until crowdsale end time
+      const untilEnd = end - now
+      timeTravel(untilEnd)
 
-      // Sale has not been finalised yet
-      await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: buyer }))
-      const receiverBalance = await tokenContract.balanceOf.call(receiver)
-      assert.equal(receiverBalance.toNumber(), 0)
+      // check buyer is verified
+      const verified = await crowdsaleContract.kycVerified.call(buyer)
+      assert.isTrue(verified)
+
+      // check transaction fails
+      const sendAmount = web3.toWei(1, 'ether')
+      await assertThrows(crowdsaleContract.sendTransaction({ from: buyer, value: sendAmount }))
+    })
+
+    it('does not allow token transfers before crowdsale is finalized', async () => {
+      const sendAmount = 5
+      const sender = buyer3
+
+      // check participant has enough token funds
+      const balance =  await tokenContract.balanceOf.call(sender)
+      assert.isAtLeast(Number(balance), sendAmount)
+
+      // Tokens are not yet transferrable because sale has not been finalized
+      await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: sender }))
+    })
+
+    it('can finalize token sale successfully', async () => {
+      const crowdsaleWallet = await crowdsaleContract.CROWDSALE_WALLET_ADDR.call()
+      const vaultBalance = web3.eth.getBalance(vaultContract.address)
+      const walletBalance1 = web3.eth.getBalance(crowdsaleWallet)
 
       // finalize token sale
       await crowdsaleContract.finalize()
-      const contractBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
+      const walletBalance2 = web3.eth.getBalance(crowdsaleWallet)
+      const vaultBalance2 = web3.eth.getBalance(vaultContract.address)
+      const contractTokenBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
+
       // check unsold tokens were effectively burned
-      assert.equal(contractBalance, 0)
-    })
+      assert.equal(contractTokenBalance, 0)
 
-    it('enables token transfers after finalization', async () => {
-      const sendAmount = web3.toWei(1, 'ether')
-      const swapAmount = 500000
-
-      // test transfer method
-      await tokenContract.transfer(receiver, sendAmount, { from: buyer })
-      const newBalance = await tokenContract.balanceOf.call(receiver)
-      assert.equal(sendAmount, newBalance)
-
-      // test transferFrom method
-      await tokenContract.approve(buyer2, swapAmount * 2, { from: buyer })
-      const balance1before = await tokenContract.balanceOf.call(buyer)
-      const balance2before = await tokenContract.balanceOf.call(buyer2)
-      await tokenContract.transferFrom(buyer, buyer2, swapAmount, { from: buyer2 })
-      const balance1after = await tokenContract.balanceOf.call(buyer)
-      const balance2after = await tokenContract.balanceOf.call(buyer2)
-      assert.equal(balance1before.minus(balance1after), swapAmount)
-      assert.equal(balance2after.minus(balance2before), swapAmount)
+      // check all ETH was effectively transferred to the crowdsale wallet
+      assert.equal(vaultBalance2, 0)
+      assert.equal(Number(walletBalance2), Number(walletBalance1) + Number(vaultBalance))
     })
 
     it('does not allow finalize to be re-invoked', async () => {
       await assertThrows(crowdsaleContract.finalize())
+    })
+
+    it('enables token transfers after finalization', async () => {
+      const sendAmount = 9        // KEY
+      const sender = buyer3
+
+      // check sender has enough tokens
+      let senderBalance = await tokenContract.balanceOf(sender)
+      assert.isAtLeast(senderBalance, sendAmount)
+
+      // test transfer method
+      let receiverBalance1 = await tokenContract.balanceOf.call(receiver)
+      await tokenContract.transfer(receiver, sendAmount, { from: sender })
+      let receiverBalance2 = await tokenContract.balanceOf.call(receiver)
+      assert.equal(Number(receiverBalance2) - Number(receiverBalance1), sendAmount)
+
+      // approve a middleman to make transfer on behalf of sender
+      await tokenContract.approve(middleman, sendAmount, { from: sender })
+      let senderBalance1 = await tokenContract.balanceOf.call(sender)
+      receiverBalance1 = await tokenContract.balanceOf.call(receiver)
+
+      // test unsuccessful transferFrom invocation (above the approved amount)
+      await assertThrows(tokenContract.transferFrom(
+        sender,
+        receiver,
+        sendAmount + 1,
+        { from: middleman }))
+
+      // test successful transferFrom invocation
+      await tokenContract.transferFrom(sender, receiver, sendAmount, { from: middleman })
+      let senderBalance2 = await tokenContract.balanceOf.call(sender)
+      receiverBalance2 = await tokenContract.balanceOf.call(receiver)
+
+      assert.equal(senderBalance1.minus(senderBalance2), sendAmount)
+      assert.equal(receiverBalance2.minus(receiverBalance1), sendAmount)
     })
 
     it('should allow the release of locked tokens for the founders', async () => {
