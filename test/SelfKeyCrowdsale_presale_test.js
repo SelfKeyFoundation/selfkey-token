@@ -65,6 +65,32 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseLock(buyer3))
   })
 
+  it('adds vested tokens to already existing vested pre-sale participant', async () => {
+    const sender = buyer3
+
+    const allocation = web3.toWei(10, 'ether')    // allocates 10 KEY
+    const timelockAddress = await presaleCrowdsale.vestedTokens.call(sender)
+    assert.notEqual(timelockAddress, 0x0)
+    const vestedBalance1 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance1), 0)
+
+    // test vested pre-commitment
+    const balance1 = await presaleToken.balanceOf.call(sender)
+    await presaleCrowdsale.addPrecommitment(sender, allocation, true)
+    const balance2 = await presaleToken.balanceOf.call(sender)
+
+    // check half tokens are immediately transferred to participant's wallet
+    assert.equal(Number(balance2) - Number(balance1), allocation / 2)
+
+    // check the other half is sent to the time-lock
+    const vestedBalance2 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance2), Number(vestedBalance1))
+    // assert.equal(Number(vestedBalance2) - Number(vestedBalance1), allocation - (allocation / 2))
+
+    // test failure on premature release of tokens
+    await assertThrows(presaleCrowdsale.releaseLock(buyer3))
+  })
+
   it('does not allow any contributions before start time', async () => {
     const sendAmount = web3.toWei(1, 'ether')
     await presaleCrowdsale.verifyKYC(buyer)
