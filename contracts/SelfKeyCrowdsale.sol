@@ -236,8 +236,15 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
             // Sets a timelock for half the tokens allocated
             uint256 half = tokens.div(2);
-            TokenTimelock timelock = new TokenTimelock(token, beneficiary, endTimeLock);
-            vestedTokens[beneficiary] = address(timelock);
+            TokenTimelock timelock;
+
+            if (vestedTokens[beneficiary] == 0x0) {
+                timelock = new TokenTimelock(token, beneficiary, endTimeLock);
+                vestedTokens[beneficiary] = address(timelock);
+            } else {
+                timelock = TokenTimelock(vestedTokens[beneficiary]);
+            }
+
             token.safeTransfer(beneficiary, half);
             token.safeTransfer(timelock, tokens.sub(half));
         } else {

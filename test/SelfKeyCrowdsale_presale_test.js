@@ -25,7 +25,11 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     presaleToken = await SelfKeyToken.at(token)
   })
 
-  it('can deploy in pre-sale mode', () => {
+  it('does not allow end date to be earlier or the same than start date', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
+  })
+
+  it('deploys successfully in pre-sale mode', () => {
     assert.isNotNull(presaleCrowdsale)
     assert.isNotNull(presaleToken)
   })
@@ -67,7 +71,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount }))
   })
 
-  it('allows the updating of public sale conversion rate before sale starts', async () => {
+  it('allows the updating of ETH price before sale starts', async () => {
     // const rate1 = await presaleCrowdsale.rate.call()
     const newEthPrice = 800
 
@@ -82,19 +86,11 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     assert.equal(expectedRate, rate2)
   })
 
-  it('does not allow to set an ETH price equal to zero', async () => {
+  it('does not allow to set an ETH price equal to zero or negative number', async () => {
     assertThrows(presaleCrowdsale.setEthPrice(0))
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
     await assertThrows(presaleCrowdsale.releaseLockFounders1())
-  })
-
-  it('does not allow locked token releasing to an empty address', async () => {
-    await assertThrows(presaleCrowdsale.releaseLock(0x0))
-  })
-
-  it('does not allow end date to be earlier or the same than start date', async () => {
-    await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
   })
 })
