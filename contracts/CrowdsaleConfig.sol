@@ -47,4 +47,7 @@ contract CrowdsaleConfig {
     address public constant FOUNDATION_POOL_ADDR = 0x15EB4FB06db8827fb82eF6DB1039e9cf88be867b;
     address public constant FOUNDERS_POOL_ADDR = 0x65a57dEa007Dc8767cB2E27357c58c4334092d09;
     address public constant LEGAL_EXPENSES_ADDR = 0x2e24aD707BeCAf1911A54E779f5CEB331F1c57aC;
+
+    // some pre-sale purchasers have their tokens half-vested for a period of 6 months
+    uint64 public constant PRECOMMITMENT_VESTING_SECONDS = 15552000;
 }

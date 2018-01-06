@@ -4,11 +4,12 @@ pragma solidity ^0.4.18;
 
 import './SelfKeyToken.sol';
 import './CrowdsaleConfig.sol';
-import './KYCRefundVault.sol';
+
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 
 
 /**
@@ -38,11 +39,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     // Total amount of tokens purchased, including pre-sale
     uint256 public totalPurchased = 0;
 
-    // counter of how many tokens are still locked to non-verified participants
-    uint256 public lockedTotal = 0;
-
     mapping(address => bool) public kycVerified;
-    mapping(address => uint256) public lockedBalance;
     mapping(address => uint256) public tokensPurchased;
 
     // a mapping of dynamically instantiated token timelocks for each pre-commitment beneficiary
@@ -54,8 +51,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     TokenTimelock public timelockFounders1;
     TokenTimelock public timelockFounders2;
 
-    // Vault to hold funds until crowdsale is finalized. Allows refunding.
-    KYCRefundVault public vault;
+    // Vault to hold funds until crowdsale is finalized. Allows refunding if crowdsale is not successful.
+    RefundVault public vault;
 
     // Crowdsale events
     event TokenPurchase(
@@ -66,8 +63,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     );
 
     event VerifiedKYC(address indexed participant);
-
-    event RejectedKYC(address indexed participant);
 
     event AddedPrecommitment(
         address indexed participant,
@@ -91,7 +86,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         require(_endTime > _startTime);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
-        // mints all tokens and gives them to the crowdsale
+
+        // mints all possible tokens to the crowdsale contract
         token.mint(address(this), TOTAL_SUPPLY_CAP);
         token.finishMinting();
 
@@ -99,7 +95,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         endTime = _endTime;
         goal = _goal;
 
-        vault = new KYCRefundVault(CROWDSALE_WALLET_ADDR);
+        vault = new RefundVault(CROWDSALE_WALLET_ADDR);
 
         // Set timelocks to 6 months and a year after startTime, respectively
         uint64 unlockAt1 = uint64(startTime + 15552000);
@@ -140,8 +136,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      *      work. Calls the contract's finalization function.
      */
     function finalize() public onlyOwner {
-        require(!isFinalized);
         require(now > startTime);
+        require(!isFinalized);
 
         finalization();
         Finalized();
@@ -150,15 +146,12 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev If crowdsale is unsuccessful or participant was KYCrejected, a refund can be claimed back
+     * @dev If crowdsale is unsuccessful, a refund can be claimed back
      */
     function claimRefund(address participant) public {
         // requires sale to be finalized and goal not reached,
-        // unless sender has been enabled explicitly
-        if (!vault.refundEnabled(participant)) {
-            require(isFinalized);
-            require(!goalReached());
-        }
+        require(isFinalized);
+        require(!goalReached());
 
         vault.refund(participant);
     }
@@ -182,57 +175,23 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Release time-locked tokens for pre-commitment participants
+     * @dev Release time-locked tokens for any vested address
      */
     function releaseLock(address participant) public {
         require(vestedTokens[participant] != 0x0);
+
         TokenTimelock timelock = TokenTimelock(vestedTokens[participant]);
         timelock.release();
     }
 
     /**
      * @dev Verifies KYC for given participant.
-     *      This enables token transfers from the participant address
+     *      This enables token purchases by the participant addres
      */
     function verifyKYC(address participant) public onlyOwner {
         kycVerified[participant] = true;
 
-        if (lockedBalance[participant] > 0) {
-            uint256 tokens = lockedBalance[participant];
-
-            // reset locked balance and substract from locked total
-            lockedTotal = lockedTotal.sub(tokens);
-            lockedBalance[participant] = 0;
-
-            // transfer locked tokens
-            token.safeTransfer(participant, tokens);
-        }
         VerifiedKYC(participant);
-    }
-
-    /**
-     * @dev Rejects KYC for given participant.
-     *      This disables token transfers from participant address
-     */
-    function rejectKYC(address participant) public onlyOwner {
-        require(!kycVerified[participant]);
-        kycVerified[participant] = false;
-
-        if (lockedBalance[participant] > 0) {
-            uint256 tokens = lockedBalance[participant];
-
-            // substract locked tokens count for this participant
-            lockedTotal = lockedTotal.sub(tokens);
-            lockedBalance[participant] = 0;
-
-            // substract purchased tokens count for this participant
-            totalPurchased = totalPurchased.sub(tokens);
-            tokensPurchased[participant] = 0;
-
-            // enable vault funds as refundable for this participant address
-            vault.enableKYCRefund(participant);
-        }
-        RejectedKYC(participant);
     }
 
     /**
@@ -250,24 +209,31 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // requires to be on pre-sale
         require(now < startTime); // solhint-disable-line not-rely-on-time
 
-        // updates state
-        kycVerified[beneficiary] = true;    // KYC was already done off-chain
+        kycVerified[beneficiary] = true;
+
         uint256 tokens = tokensAllocated;
         totalPurchased = totalPurchased.add(tokens);
         tokensPurchased[beneficiary] = tokensPurchased[beneficiary].add(tokens);
 
         if (halfVesting) {
-            // Calculates vesting release date for 6 months after start time
-            uint64 vestingSeconds = 15552000;
-            uint64 endTimeLock = uint64(startTime + vestingSeconds);
+            // half the tokens are put into a time-lock for a pre-defined period
+            uint64 endTimeLock = uint64(startTime + PRECOMMITMENT_VESTING_SECONDS);
 
             // Sets a timelock for half the tokens allocated
             uint256 half = tokens.div(2);
-            TokenTimelock timelock = new TokenTimelock(token, beneficiary, endTimeLock);
-            vestedTokens[beneficiary] = address(timelock);
+            TokenTimelock timelock;
+
+            if (vestedTokens[beneficiary] == 0x0) {
+                timelock = new TokenTimelock(token, beneficiary, endTimeLock);
+                vestedTokens[beneficiary] = address(timelock);
+            } else {
+                timelock = TokenTimelock(vestedTokens[beneficiary]);
+            }
+
             token.safeTransfer(beneficiary, half);
             token.safeTransfer(timelock, tokens.sub(half));
         } else {
+            // all tokens are sent to the participant's address
             token.safeTransfer(beneficiary, tokens);
         }
 
@@ -278,14 +244,29 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     *  @dev Low level token purchase. Only callable internally.
+     * @dev Additional finalization logic. Enables token transfers.
+     */
+    function finalization() internal {
+        //require(lockedTotal == 0); // requires there are no pending KYC checks
+
+        if (goalReached()) {
+            burnUnsold();
+            vault.close();
+            token.enableTransfers();
+        } else {
+            vault.enableRefunds();
+        }
+    }
+    
+    /**
+     *  @dev Low level token purchase. Only callable internally. Participants MUST be KYC-verified before purchase
      *  @param participant — The address of the token purchaser
      */
     function buyTokens(address participant) internal {
+        require(kycVerified[participant]);
         require(now >= startTime);
         require(now < endTime);
         require(!isFinalized);
-        require(participant != 0x0);
         require(msg.value != 0);
 
         // Calculate the token amount to be allocated
@@ -306,15 +287,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             require(tokensPurchased[participant] <= PURCHASER_MAX_TOKEN_CAP);
         }
 
-        if (kycVerified[participant]) {
-            token.safeTransfer(participant, tokens);
-        } else {
-            lockedBalance[participant] = lockedBalance[participant].add(tokens);
-            lockedTotal = lockedTotal.add(tokens);
-        }
-
-        // Sends ETH contribution to the RefundVault
+        // Sends ETH contribution to the RefundVault and tokens to participant
         vault.deposit.value(msg.value)(participant);
+        token.safeTransfer(participant, tokens);
 
         TokenPurchase(
             msg.sender,
@@ -322,21 +297,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
             weiAmount,
             tokens
         );
-    }
-
-    /**
-     * @dev Additional finalization logic. Enables token transfers.
-     */
-    function finalization() internal {
-        //require(lockedTotal == 0); // requires there are no pending KYC checks
-
-        if (goalReached()) {
-            burnUnsold();
-            vault.close();
-            token.enableTransfers();
-        } else {
-            vault.enableRefunds();
-        }
     }
 
     /**

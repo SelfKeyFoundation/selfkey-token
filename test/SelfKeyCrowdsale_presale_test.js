@@ -25,7 +25,11 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     presaleToken = await SelfKeyToken.at(token)
   })
 
-  it('can deploy in pre-sale mode', () => {
+  it('does not allow end date to be earlier or the same than start date', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
+  })
+
+  it('deploys successfully in pre-sale mode', () => {
     assert.isNotNull(presaleCrowdsale)
     assert.isNotNull(presaleToken)
   })
@@ -61,13 +65,39 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseLock(buyer3))
   })
 
+  it('adds vested tokens to already existing vested pre-sale participant', async () => {
+    const sender = buyer3
+
+    const allocation = web3.toWei(10, 'ether')    // allocates 10 KEY
+    const timelockAddress = await presaleCrowdsale.vestedTokens.call(sender)
+    assert.notEqual(timelockAddress, 0x0)
+    const vestedBalance1 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance1), 0)
+
+    // test vested pre-commitment
+    const balance1 = await presaleToken.balanceOf.call(sender)
+    await presaleCrowdsale.addPrecommitment(sender, allocation, true)
+    const balance2 = await presaleToken.balanceOf.call(sender)
+
+    // check half tokens are immediately transferred to participant's wallet
+    assert.equal(Number(balance2) - Number(balance1), allocation / 2)
+
+    // check the other half is sent to the time-lock
+    const vestedBalance2 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance2), Number(vestedBalance1))
+    // assert.equal(Number(vestedBalance2) - Number(vestedBalance1), allocation - (allocation / 2))
+
+    // test failure on premature release of tokens
+    await assertThrows(presaleCrowdsale.releaseLock(buyer3))
+  })
+
   it('does not allow any contributions before start time', async () => {
     const sendAmount = web3.toWei(1, 'ether')
     await presaleCrowdsale.verifyKYC(buyer)
     await assertThrows(presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount }))
   })
 
-  it('allows the updating of public sale conversion rate before sale starts', async () => {
+  it('allows the updating of ETH price before sale starts', async () => {
     // const rate1 = await presaleCrowdsale.rate.call()
     const newEthPrice = 800
 
@@ -82,23 +112,11 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     assert.equal(expectedRate, rate2)
   })
 
-  it('does not allow to set an ETH price equal to zero', async () => {
+  it('does not allow to set an ETH price equal to zero or negative number', async () => {
     assertThrows(presaleCrowdsale.setEthPrice(0))
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
     await assertThrows(presaleCrowdsale.releaseLockFounders1())
-  })
-
-  it('does not allow locked token releasing to an empty address', async () => {
-    await assertThrows(presaleCrowdsale.releaseLock(0x0))
-  })
-
-  it('does not allow end date to be earlier or the same than start date', async () => {
-    await assertThrows(SelfKeyCrowdsale.new(
-      start,
-      start,
-      goal
-    ))
   })
 })
