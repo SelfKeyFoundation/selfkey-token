@@ -35,7 +35,8 @@ module.exports = {
       network_id: 3,
       provider: engine,
       from: addresses[0],
-      gas: 4700000
+      gas: 4700000,
+      gasPrice: 100000000000
     }
   },
   solc: {

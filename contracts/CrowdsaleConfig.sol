@@ -27,26 +27,25 @@ contract CrowdsaleConfig {
     // approx 49.5%
     uint256 public constant FOUNDATION_POOL_TOKENS = 2970000000 * MIN_TOKEN_UNIT;
 
-    // 5.5% Not vested
-    uint256 public constant FOUNDERS_TOKENS = 330000000 * MIN_TOKEN_UNIT;
+    // Founders' distribution. Total = 16.5%
+    uint256 public constant FOUNDERS1_TOKENS = 311111111 * MIN_TOKEN_UNIT;
+    uint256 public constant FOUNDERS1_TOKENS_VESTED_1 = 311111111 * MIN_TOKEN_UNIT;
+    uint256 public constant FOUNDERS1_TOKENS_VESTED_2 = 311111111 * MIN_TOKEN_UNIT;
+    uint256 public constant FOUNDERS2_TOKENS_VESTED = 56666667 * MIN_TOKEN_UNIT;
 
-    // 5.5% Timelocked for half a year
-    uint256 public constant FOUNDERS_TOKENS_VESTED_1 = 330000000 * MIN_TOKEN_UNIT;
-
-    // 5.5% Timelocked for a year
-    uint256 public constant FOUNDERS_TOKENS_VESTED_2 = 330000000 * MIN_TOKEN_UNIT;
-
-    // 1%
-    uint256 public constant LEGAL_EXPENSES_TOKENS = 60000000 * MIN_TOKEN_UNIT;
+    // 1% for legal advisors
+    uint256 public constant LEGAL_EXPENSES_TOKENS = 30000000 * MIN_TOKEN_UNIT;
+    uint256 public constant LEGAL_EXPENSES_TOKENS_VESTED = 30000000 * MIN_TOKEN_UNIT;
 
     // KEY price in USD (thousandths)
     uint256 public constant TOKEN_PRICE_THOUSANDTH = 15;  // $0.015 per KEY
 
     // Contract wallet addresses for initial allocation
-    address public constant CROWDSALE_WALLET_ADDR = 0xd061bc63e751B0B878d36a45D97F8B9E08984674;
-    address public constant FOUNDATION_POOL_ADDR = 0x15EB4FB06db8827fb82eF6DB1039e9cf88be867b;
-    address public constant FOUNDERS_POOL_ADDR = 0x65a57dEa007Dc8767cB2E27357c58c4334092d09;
-    address public constant LEGAL_EXPENSES_ADDR = 0x2e24aD707BeCAf1911A54E779f5CEB331F1c57aC;
+    address public constant CROWDSALE_WALLET_ADDR = 0x411A83c2b938EBF256939CDB552f5D176E8d4009;
+    address public constant FOUNDATION_POOL_ADDR = 0xC719DB33389eA25F5e72C1338dADb1D46F34b06E;
+    address public constant FOUNDERS_POOL_ADDR_1 = 0x7ac25aAc6a1c082aEbA716e614b0F8d1E3727aFB;
+    address public constant FOUNDERS_POOL_ADDR_2 = 0xbC08f9AEEc5fE01d9512dC8D47D7C57721917529;
+    address public constant LEGAL_EXPENSES_ADDR = 0x68335F976E97C6c0362f697BB9e5a70f44FA33a8;
 
     // some pre-sale purchasers have their tokens half-vested for a period of 6 months
     uint64 public constant PRECOMMITMENT_VESTING_SECONDS = 15552000;
