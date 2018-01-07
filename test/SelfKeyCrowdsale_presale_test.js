@@ -88,13 +88,15 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     // assert.equal(Number(vestedBalance2) - Number(vestedBalance1), allocation - (allocation / 2))
 
     // test failure on premature release of tokens
-    await assertThrows(presaleCrowdsale.releaseLock(buyer3))
+    await assertThrows(presaleCrowdsale.releaseLock(sender))
   })
 
   it('does not allow any contributions before start time', async () => {
+    const sender = buyer
+
     const sendAmount = web3.toWei(1, 'ether')
-    await presaleCrowdsale.verifyKYC(buyer)
-    await assertThrows(presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount }))
+    await presaleCrowdsale.verifyKYC(sender)
+    await assertThrows(presaleCrowdsale.sendTransaction({ from: sender, value: sendAmount }))
   })
 
   it('allows the updating of ETH price before sale starts', async () => {
@@ -114,9 +116,13 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
 
   it('does not allow to set an ETH price equal to zero or negative number', async () => {
     assertThrows(presaleCrowdsale.setEthPrice(0))
+    assertThrows(presaleCrowdsale.setEthPrice(-999))
   })
 
   it('does not release the founders\' locked tokens too soon', async () => {
-    await assertThrows(presaleCrowdsale.releaseLockFounders1())
+    await assertThrows(presaleCrowdsale.releaseFirstLockFounders1())
+    await assertThrows(presaleCrowdsale.releaseSecondLockFounders1())
+    await assertThrows(presaleCrowdsale.releaseLockFounders2())
+    await assertThrows(presaleCrowdsale.releaseLockLegalExpenses())
   })
 })
