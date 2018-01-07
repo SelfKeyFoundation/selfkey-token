@@ -127,42 +127,46 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('distributed the initial token amounts correctly', async () => {
       // Get allocation wallet addresses
       const foundationPool = await crowdsaleContract.FOUNDATION_POOL_ADDR.call()
-      const legalExpensesWallet = await crowdsaleContract.LEGAL_EXPENSES_ADDR.call()
+      const legalExpenses1Address = await crowdsaleContract.LEGAL_EXPENSES_ADDR_1.call()
+      const legalExpenses2Address = await crowdsaleContract.LEGAL_EXPENSES_ADDR_2.call()
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR_1.call()
       const founders1Timelock1Address = await crowdsaleContract.founders1Timelock1.call()
       const founders1Timelock2Address = await crowdsaleContract.founders1Timelock2.call()
       const founders2TimelockAddress = await crowdsaleContract.founders2Timelock.call()
-      const legalExpensesTimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
+      const legalExpenses1TimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
 
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
-      const expectedLegalTokens = await crowdsaleContract.LEGAL_EXPENSES_TOKENS.call()
+      const expectedLegal1Tokens = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS.call()
+      const expectedLegal2Tokens = await crowdsaleContract.LEGAL_EXPENSES_2_TOKENS.call()
       const expectedFoundersTokens = await crowdsaleContract.FOUNDERS1_TOKENS.call()
 
       const expectedFounders1Vested1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
       const expectedFounders1Vested2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
       const expectedFounders2Vested = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
-      const expectedLegalVested = await crowdsaleContract.LEGAL_EXPENSES_TOKENS_VESTED.call()
+      const expectedLegal1Vested = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS_VESTED.call()
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
-      const legalBalance = await tokenContract.balanceOf.call(legalExpensesWallet)
+      const legal1Balance = await tokenContract.balanceOf.call(legalExpenses1Address)
+      const legal2Balance = await tokenContract.balanceOf.call(legalExpenses2Address)
       const foundersBalance = await tokenContract.balanceOf.call(foundersPool)
 
       const founders1vested1Balance1 = await tokenContract.balanceOf.call(founders1Timelock1Address)
       const founders1vestedBalance2 = await tokenContract.balanceOf.call(founders1Timelock2Address)
       const founders2vestedBalance = await tokenContract.balanceOf.call(founders2TimelockAddress)
-      const legalVestedBalance = await tokenContract.balanceOf.call(legalExpensesTimelockAddress)
+      const legal1VestedBalance = await tokenContract.balanceOf.call(legalExpenses1TimelockAddress)
 
       // Check allocation was done as expected
-      assert.equal(foundationBalance, Number(expectedFoundationTokens))
-      assert.equal(legalBalance, Number(expectedLegalTokens))
-      assert.equal(foundersBalance, Number(expectedFoundersTokens))
+      assert.equal(Number(foundationBalance), Number(expectedFoundationTokens))
+      assert.equal(Number(legal1Balance), Number(expectedLegal1Tokens))
+      assert.equal(Number(legal2Balance), Number(expectedLegal2Tokens))
+      assert.equal(Number(foundersBalance), Number(expectedFoundersTokens))
 
-      assert.equal(founders1vested1Balance1, Number(expectedFounders1Vested1))
-      assert.equal(founders1vestedBalance2, Number(expectedFounders1Vested2))
-      assert.equal(founders2vestedBalance, Number(expectedFounders2Vested))
-      assert.equal(legalVestedBalance, Number(expectedLegalVested))
+      assert.equal(Number(founders1vested1Balance1), Number(expectedFounders1Vested1))
+      assert.equal(Number(founders1vestedBalance2), Number(expectedFounders1Vested2))
+      assert.equal(Number(founders2vestedBalance), Number(expectedFounders2Vested))
+      assert.equal(Number(legal1VestedBalance), Number(expectedLegal1Vested))
     })
 
     it('allows KYC verification of participant address', async () => {
@@ -391,11 +395,11 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sixMonths = 15552000
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR_1.call()
       const foundersPool2 = await crowdsaleContract.FOUNDERS_POOL_ADDR_2.call()
-      const legalPool = await crowdsaleContract.LEGAL_EXPENSES_ADDR.call()
+      const legalPool = await crowdsaleContract.LEGAL_EXPENSES_ADDR_1.call()
       const founder1expected1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
       const founder1expected2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
       const founder2expected = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
-      const legalExpected = await crowdsaleContract.LEGAL_EXPENSES_TOKENS_VESTED.call()
+      const legalExpected = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS_VESTED.call()
 
       // forward time 6 months
       await timeTravel(sixMonths)

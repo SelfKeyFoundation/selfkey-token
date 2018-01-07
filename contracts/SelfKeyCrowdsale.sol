@@ -107,18 +107,19 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         founders1Timelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, sixMonthLock);
         founders1Timelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, yearLock);
         founders2Timelock = new TokenTimelock(token, FOUNDERS_POOL_ADDR_2, yearLock);
-        legalExpensesTimelock = new TokenTimelock(token, LEGAL_EXPENSES_ADDR, yearLock);
+        legalExpensesTimelock = new TokenTimelock(token, LEGAL_EXPENSES_ADDR_1, sixMonthLock);
 
         // Genesis allocation of tokens
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
         token.safeTransfer(FOUNDERS_POOL_ADDR_1, FOUNDERS1_TOKENS);
-        token.safeTransfer(LEGAL_EXPENSES_ADDR, LEGAL_EXPENSES_TOKENS);
+        token.safeTransfer(LEGAL_EXPENSES_ADDR_1, LEGAL_EXPENSES_1_TOKENS);
+        token.safeTransfer(LEGAL_EXPENSES_ADDR_2, LEGAL_EXPENSES_2_TOKENS);
 
         // Allocation of vested tokens
         token.safeTransfer(founders1Timelock1, FOUNDERS1_TOKENS_VESTED_1);
         token.safeTransfer(founders1Timelock2, FOUNDERS1_TOKENS_VESTED_1);
         token.safeTransfer(founders2Timelock, FOUNDERS2_TOKENS_VESTED);
-        token.safeTransfer(legalExpensesTimelock, LEGAL_EXPENSES_TOKENS_VESTED);
+        token.safeTransfer(legalExpensesTimelock, LEGAL_EXPENSES_1_TOKENS_VESTED);
     }
 
     /**
