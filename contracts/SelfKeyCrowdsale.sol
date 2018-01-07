@@ -111,6 +111,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
         // Genesis allocation of tokens
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(COMMUNITY_POOL_ADDR, COMMUNITY_POOL_TOKENS);
         token.safeTransfer(FOUNDERS_POOL_ADDR_1, FOUNDERS1_TOKENS);
         token.safeTransfer(LEGAL_EXPENSES_ADDR_1, LEGAL_EXPENSES_1_TOKENS);
         token.safeTransfer(LEGAL_EXPENSES_ADDR_2, LEGAL_EXPENSES_2_TOKENS);

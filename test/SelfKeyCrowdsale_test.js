@@ -127,6 +127,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('distributed the initial token amounts correctly', async () => {
       // Get allocation wallet addresses
       const foundationPool = await crowdsaleContract.FOUNDATION_POOL_ADDR.call()
+      const communityPool = await crowdsaleContract.COMMUNITY_POOL_ADDR.call()
       const legalExpenses1Address = await crowdsaleContract.LEGAL_EXPENSES_ADDR_1.call()
       const legalExpenses2Address = await crowdsaleContract.LEGAL_EXPENSES_ADDR_2.call()
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR_1.call()
@@ -137,6 +138,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
+      const expectedCommunityTokens = await crowdsaleContract.COMMUNITY_POOL_TOKENS.call()
       const expectedLegal1Tokens = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS.call()
       const expectedLegal2Tokens = await crowdsaleContract.LEGAL_EXPENSES_2_TOKENS.call()
       const expectedFoundersTokens = await crowdsaleContract.FOUNDERS1_TOKENS.call()
@@ -148,6 +150,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
+      const communityBalance = await tokenContract.balanceOf.call(communityPool)
       const legal1Balance = await tokenContract.balanceOf.call(legalExpenses1Address)
       const legal2Balance = await tokenContract.balanceOf.call(legalExpenses2Address)
       const foundersBalance = await tokenContract.balanceOf.call(foundersPool)
@@ -159,6 +162,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Check allocation was done as expected
       assert.equal(Number(foundationBalance), Number(expectedFoundationTokens))
+      assert.equal(Number(communityBalance), Number(expectedCommunityTokens))
       assert.equal(Number(legal1Balance), Number(expectedLegal1Tokens))
       assert.equal(Number(legal2Balance), Number(expectedLegal2Tokens))
       assert.equal(Number(foundersBalance), Number(expectedFoundersTokens))
