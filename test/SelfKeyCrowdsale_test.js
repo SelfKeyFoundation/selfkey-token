@@ -392,36 +392,33 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR_1.call()
       const foundersPool2 = await crowdsaleContract.FOUNDERS_POOL_ADDR_2.call()
       const legalPool = await crowdsaleContract.LEGAL_EXPENSES_ADDR.call()
-      const founders1expected1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
-      const founders1expected2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
-      const founders2expected = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
+      const founder1expected1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
+      const founder1expected2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
+      const founder2expected = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
       const legalExpected = await crowdsaleContract.LEGAL_EXPENSES_TOKENS_VESTED.call()
 
       // forward time 6 months
       await timeTravel(sixMonths)
 
       // test first timelock release
-      const founders1Balance1 = await tokenContract.balanceOf(foundersPool)
+      const founder1Balance1 = await tokenContract.balanceOf(foundersPool)
       await crowdsaleContract.releaseFirstLockFounders1()
-      const founders1Balance2 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(
-        Number(founders1Balance2), Number(founders1Balance1) + Number(founders1expected1))
+      const founder1Balance2 = await tokenContract.balanceOf(foundersPool)
+      assert.equal(Number(founder1Balance2), Number(founder1Balance1) + Number(founder1expected1))
 
       // forward time an additional 6 months
       await timeTravel(sixMonths)
 
       // test second timelock release
       await crowdsaleContract.releaseSecondLockFounders1()
-      const founders1Balance3 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(
-        Number(founders1Balance3), Number(founders1Balance2) + Number(founders1expected2))
+      const founder1Balance3 = await tokenContract.balanceOf(foundersPool)
+      assert.equal(Number(founder1Balance3), Number(founder1Balance2) + Number(founder1expected2))
 
       // check for second founders' address release
-      const founders2Balance1 = await tokenContract.balanceOf(foundersPool2)
+      const founder2Balance1 = await tokenContract.balanceOf(foundersPool2)
       await crowdsaleContract.releaseLockFounders2()
-      const founders2Balance2 = await tokenContract.balanceOf(foundersPool2)
-      assert.equal(
-        Number(founders2Balance2), Number(founders2Balance1) + Number(founders2expected))
+      const founder2Balance2 = await tokenContract.balanceOf(foundersPool2)
+      assert.equal(Number(founder2Balance2), Number(founder2Balance1) + Number(founder2expected))
 
       // check for legal expenses vested release
       const legalBalance1 = await tokenContract.balanceOf(legalPool)
