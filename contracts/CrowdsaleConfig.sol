@@ -24,8 +24,11 @@ contract CrowdsaleConfig {
     // Maximum cap per purchaser on public sale = $18,000 in KEY (at $0.015)
     uint256 public constant PURCHASER_MAX_TOKEN_CAP = 1200000 * MIN_TOKEN_UNIT;
 
-    // approx 49.5%
-    uint256 public constant FOUNDATION_POOL_TOKENS = 2970000000 * MIN_TOKEN_UNIT;
+    // 16.5%
+    uint256 public constant FOUNDATION_POOL_TOKENS = 990000000 * MIN_TOKEN_UNIT;
+
+    // Approx 33%
+    uint256 public constant COMMUNITY_POOL_TOKENS = 1980000000 * MIN_TOKEN_UNIT;
 
     // Founders' distribution. Total = 16.5%
     uint256 public constant FOUNDERS1_TOKENS = 311111111 * MIN_TOKEN_UNIT;
@@ -44,6 +47,7 @@ contract CrowdsaleConfig {
     // Contract wallet addresses for initial allocation
     address public constant CROWDSALE_WALLET_ADDR = 0x411A83c2b938EBF256939CDB552f5D176E8d4009;
     address public constant FOUNDATION_POOL_ADDR = 0xC719DB33389eA25F5e72C1338dADb1D46F34b06E;
+    address public constant COMMUNITY_POOL_ADDR = 0xD96969247B51187da3bf6418B3ED39304ae2006c;
     address public constant FOUNDERS_POOL_ADDR_1 = 0x7ac25aAc6a1c082aEbA716e614b0F8d1E3727aFB;
     address public constant FOUNDERS_POOL_ADDR_2 = 0xbC08f9AEEc5fE01d9512dC8D47D7C57721917529;
     address public constant LEGAL_EXPENSES_ADDR_1 = 0x68335F976E97C6c0362f697BB9e5a70f44FA33a8;
