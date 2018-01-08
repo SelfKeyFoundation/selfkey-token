@@ -36,7 +36,7 @@ module.exports = {
       provider: engine,
       from: addresses[0],
       gas: 4700000,
-      gasPrice: 100000000000
+      gasPrice: 1100000000000
     }
   },
   solc: {

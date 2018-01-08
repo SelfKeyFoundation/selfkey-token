@@ -51,7 +51,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     TokenTimelock public founders1Timelock1;
     TokenTimelock public founders1Timelock2;
     TokenTimelock public founders2Timelock;
-    TokenTimelock public legalExpensesTimelock;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding if crowdsale is not successful.
     RefundVault public vault;
@@ -107,7 +106,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         founders1Timelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, sixMonthLock);
         founders1Timelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, yearLock);
         founders2Timelock = new TokenTimelock(token, FOUNDERS_POOL_ADDR_2, yearLock);
-        legalExpensesTimelock = new TokenTimelock(token, LEGAL_EXPENSES_ADDR_1, sixMonthLock);
 
         // Genesis allocation of tokens
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
@@ -120,7 +118,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         token.safeTransfer(founders1Timelock1, FOUNDERS1_TOKENS_VESTED_1);
         token.safeTransfer(founders1Timelock2, FOUNDERS1_TOKENS_VESTED_1);
         token.safeTransfer(founders2Timelock, FOUNDERS2_TOKENS_VESTED);
-        token.safeTransfer(legalExpensesTimelock, LEGAL_EXPENSES_1_TOKENS_VESTED);
     }
 
     /**
@@ -188,10 +185,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     function releaseLockFounders2() public {
         founders2Timelock.release();
-    }
-
-    function releaseLockLegalExpenses() public {
-        legalExpensesTimelock.release();
     }
 
     /**
