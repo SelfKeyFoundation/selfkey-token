@@ -112,7 +112,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isNotNull(founders1Timelock1)
       assert.isNotNull(founders1Timelock2)
       assert.isNotNull(founders2Timelock)
-      //assert.isNotNull(legalExpensesTimelock)
 
       // check token contract owner is the crowdsale contract
       const owner = await tokenContract.owner.call()
@@ -129,7 +128,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1Timelock1Address = await crowdsaleContract.founders1Timelock1.call()
       const founders1Timelock2Address = await crowdsaleContract.founders1Timelock2.call()
       const founders2TimelockAddress = await crowdsaleContract.founders2Timelock.call()
-      //const legalExpenses1TimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
 
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
@@ -152,7 +150,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1vested1Balance1 = await tokenContract.balanceOf.call(founders1Timelock1Address)
       const founders1vestedBalance2 = await tokenContract.balanceOf.call(founders1Timelock2Address)
       const founders2vestedBalance = await tokenContract.balanceOf.call(founders2TimelockAddress)
-      //const legal1VestedBalance = await tokenContract.balanceOf.call(legalExpenses1TimelockAddress)
 
       // Check allocation was done as expected
       assert.equal(Number(foundationBalance), Number(expectedFoundationTokens))
@@ -392,11 +389,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sixMonths = 15552000
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR_1.call()
       const foundersPool2 = await crowdsaleContract.FOUNDERS_POOL_ADDR_2.call()
-      const legalPool = await crowdsaleContract.LEGAL_EXPENSES_ADDR_1.call()
       const founder1expected1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
       const founder1expected2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
       const founder2expected = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
-      const legalExpected = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS_VESTED.call()
 
       // forward time 6 months
       await timeTravel(sixMonths)
