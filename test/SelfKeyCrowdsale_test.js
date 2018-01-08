@@ -22,7 +22,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
   let founders1Timelock1
   let founders1Timelock2
   let founders2Timelock
-  let legalExpensesTimelock
   let vaultContract
 
   context('Crowdsale whose goal hasn\'t been reached', () => {
@@ -40,12 +39,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1Timelock1Address = await crowdsaleContract.founders1Timelock1.call()
       const founders1Timelock2Address = await crowdsaleContract.founders1Timelock2.call()
       const founders2TimelockAddress = await crowdsaleContract.founders2Timelock.call()
-      const legalExpensesTimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
 
       founders1Timelock1 = await TokenTimelock.at(founders1Timelock1Address)
       founders1Timelock2 = await TokenTimelock.at(founders1Timelock2Address)
       founders2Timelock = await TokenTimelock.at(founders2TimelockAddress)
-      legalExpensesTimelock = await TokenTimelock.at(legalExpensesTimelockAddress)
 
       const vaultAddress = await crowdsaleContract.vault.call()
       vaultContract = await RefundVault.at(vaultAddress)
@@ -99,12 +96,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1Timelock1Address = await crowdsaleContract.founders1Timelock1.call()
       const founders1Timelock2Address = await crowdsaleContract.founders1Timelock2.call()
       const founders2TimelockAddress = await crowdsaleContract.founders2Timelock.call()
-      const legalExpensesTimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
 
       founders1Timelock1 = await TokenTimelock.at(founders1Timelock1Address)
       founders1Timelock2 = await TokenTimelock.at(founders1Timelock2Address)
       founders2Timelock = await TokenTimelock.at(founders2TimelockAddress)
-      legalExpensesTimelock = await TokenTimelock.at(legalExpensesTimelockAddress)
 
       const vaultAddress = await crowdsaleContract.vault.call()
       vaultContract = await RefundVault.at(vaultAddress)
@@ -117,7 +112,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isNotNull(founders1Timelock1)
       assert.isNotNull(founders1Timelock2)
       assert.isNotNull(founders2Timelock)
-      assert.isNotNull(legalExpensesTimelock)
+      //assert.isNotNull(legalExpensesTimelock)
 
       // check token contract owner is the crowdsale contract
       const owner = await tokenContract.owner.call()
@@ -134,7 +129,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1Timelock1Address = await crowdsaleContract.founders1Timelock1.call()
       const founders1Timelock2Address = await crowdsaleContract.founders1Timelock2.call()
       const founders2TimelockAddress = await crowdsaleContract.founders2Timelock.call()
-      const legalExpenses1TimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
+      //const legalExpenses1TimelockAddress = await crowdsaleContract.legalExpensesTimelock.call()
 
       // Get expected token amounts from contract config
       const expectedFoundationTokens = await crowdsaleContract.FOUNDATION_POOL_TOKENS.call()
@@ -146,7 +141,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const expectedFounders1Vested1 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_1.call()
       const expectedFounders1Vested2 = await crowdsaleContract.FOUNDERS1_TOKENS_VESTED_2.call()
       const expectedFounders2Vested = await crowdsaleContract.FOUNDERS2_TOKENS_VESTED.call()
-      const expectedLegal1Vested = await crowdsaleContract.LEGAL_EXPENSES_1_TOKENS_VESTED.call()
 
       // Get actual balances
       const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
@@ -158,7 +152,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const founders1vested1Balance1 = await tokenContract.balanceOf.call(founders1Timelock1Address)
       const founders1vestedBalance2 = await tokenContract.balanceOf.call(founders1Timelock2Address)
       const founders2vestedBalance = await tokenContract.balanceOf.call(founders2TimelockAddress)
-      const legal1VestedBalance = await tokenContract.balanceOf.call(legalExpenses1TimelockAddress)
+      //const legal1VestedBalance = await tokenContract.balanceOf.call(legalExpenses1TimelockAddress)
 
       // Check allocation was done as expected
       assert.equal(Number(foundationBalance), Number(expectedFoundationTokens))
@@ -170,7 +164,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(Number(founders1vested1Balance1), Number(expectedFounders1Vested1))
       assert.equal(Number(founders1vestedBalance2), Number(expectedFounders1Vested2))
       assert.equal(Number(founders2vestedBalance), Number(expectedFounders2Vested))
-      assert.equal(Number(legal1VestedBalance), Number(expectedLegal1Vested))
     })
 
     it('allows KYC verification of participant address', async () => {
@@ -427,12 +420,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await crowdsaleContract.releaseLockFounders2()
       const founder2Balance2 = await tokenContract.balanceOf(foundersPool2)
       assert.equal(Number(founder2Balance2), Number(founder2Balance1) + Number(founder2expected))
-
-      // check for legal expenses vested release
-      const legalBalance1 = await tokenContract.balanceOf(legalPool)
-      await crowdsaleContract.releaseLockLegalExpenses()
-      const legalBalance2 = await tokenContract.balanceOf(legalPool)
-      assert.equal(Number(legalBalance2), Number(legalBalance1) + Number(legalExpected))
     })
   })
 })

@@ -123,6 +123,5 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseFirstLockFounders1())
     await assertThrows(presaleCrowdsale.releaseSecondLockFounders1())
     await assertThrows(presaleCrowdsale.releaseLockFounders2())
-    await assertThrows(presaleCrowdsale.releaseLockLegalExpenses())
   })
 })
