@@ -37,8 +37,7 @@ contract CrowdsaleConfig {
     uint256 public constant FOUNDERS2_TOKENS_VESTED = 56666667 * MIN_TOKEN_UNIT;
 
     // 1% for legal advisors
-    uint256 public constant LEGAL_EXPENSES_1_TOKENS = 27000000 * MIN_TOKEN_UNIT;
-    uint256 public constant LEGAL_EXPENSES_1_TOKENS_VESTED = 27000000 * MIN_TOKEN_UNIT;
+    uint256 public constant LEGAL_EXPENSES_1_TOKENS = 54000000 * MIN_TOKEN_UNIT;
     uint256 public constant LEGAL_EXPENSES_2_TOKENS = 6000000 * MIN_TOKEN_UNIT;
 
     // KEY price in USD (thousandths)
