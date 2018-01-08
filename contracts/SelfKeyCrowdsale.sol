@@ -48,9 +48,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     bool public isFinalized = false;
 
     // Token Timelocks
-    TokenTimelock public founders1Timelock1;
-    TokenTimelock public founders1Timelock2;
-    TokenTimelock public founders2Timelock;
+    TokenTimelock public foundersTimelock1;
+    TokenTimelock public foundersTimelock2;
+    TokenTimelock public foundationTimelock;
 
     // Vault to hold funds until crowdsale is finalized. Allows refunding if crowdsale is not successful.
     RefundVault public vault;
@@ -103,21 +103,21 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         uint64 yearLock = uint64(startTime + 31104000);
 
         // Instantiation of token timelocks
-        founders1Timelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, sixMonthLock);
-        founders1Timelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR_1, yearLock);
-        founders2Timelock = new TokenTimelock(token, FOUNDERS_POOL_ADDR_2, yearLock);
+        foundersTimelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, sixMonthLock);
+        foundersTimelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, yearLock);
+        foundationTimelock = new TokenTimelock(token, FOUNDATION_POOL_ADDR, yearLock);
 
         // Genesis allocation of tokens
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
         token.safeTransfer(COMMUNITY_POOL_ADDR, COMMUNITY_POOL_TOKENS);
-        token.safeTransfer(FOUNDERS_POOL_ADDR_1, FOUNDERS1_TOKENS);
+        token.safeTransfer(FOUNDERS_POOL_ADDR, FOUNDERS_TOKENS);
         token.safeTransfer(LEGAL_EXPENSES_ADDR_1, LEGAL_EXPENSES_1_TOKENS);
         token.safeTransfer(LEGAL_EXPENSES_ADDR_2, LEGAL_EXPENSES_2_TOKENS);
 
         // Allocation of vested tokens
-        token.safeTransfer(founders1Timelock1, FOUNDERS1_TOKENS_VESTED_1);
-        token.safeTransfer(founders1Timelock2, FOUNDERS1_TOKENS_VESTED_1);
-        token.safeTransfer(founders2Timelock, FOUNDERS2_TOKENS_VESTED);
+        token.safeTransfer(foundersTimelock1, FOUNDERS_TOKENS_VESTED_1);
+        token.safeTransfer(foundersTimelock2, FOUNDERS_TOKENS_VESTED_2);
+        token.safeTransfer(foundationTimelock, FOUNDATION_POOL_TOKENS_VESTED);
     }
 
     /**
@@ -175,16 +175,16 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     /**
      * @dev Release time-locked tokens
      */
-    function releaseFirstLockFounders1() public {
-        founders1Timelock1.release();
-    }
-
-    function releaseSecondLockFounders1() public {
-        founders1Timelock2.release();
+    function releaseLockFounders1() public {
+        foundersTimelock1.release();
     }
 
     function releaseLockFounders2() public {
-        founders2Timelock.release();
+        foundersTimelock2.release();
+    }
+
+    function releaseLockFoundation() public {
+        foundationTimelock.release();
     }
 
     /**
