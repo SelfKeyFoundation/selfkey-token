@@ -416,9 +416,8 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundationBalance1 = await tokenContract.balanceOf(foundationPool)
       await crowdsaleContract.releaseLockFoundation()
       const foundationBalance2 = await tokenContract.balanceOf(foundationPool)
-      assert.equal(
-        Number(foundationBalance2),
-        Number(foundationBalance1) + Number(foundationExpected))  // function-paren-newline
+      const newExpectedBalance = Number(foundationBalance1) + Number(foundationExpected)
+      assert.equal(Number(foundationBalance2), newExpectedBalance)
     })
   })
 })
