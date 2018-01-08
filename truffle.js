@@ -16,7 +16,8 @@ const DEFAULT = {
 }
 
 const walletPath = './wallet.json'
-const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+//const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+const providerUrl = 'https://mainnet.infura.io/SYGRk61NUc3yN4NNRs60'
 const { addresses, engine } = deployer(walletPath, providerUrl)
 
 module.exports = {
@@ -37,6 +38,13 @@ module.exports = {
       from: addresses[0],
       gas: 4700000,
       gasPrice: 1100000000000
+    },
+    mainnet: {
+      network_id: 1,
+      provider: engine,
+      from: addresses[0],
+      gas: 4700000,
+      gasPrice: 42000000000   // 42 Gwei
     }
   },
   solc: {

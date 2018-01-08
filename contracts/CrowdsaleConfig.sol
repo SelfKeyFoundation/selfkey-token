@@ -15,7 +15,7 @@ contract CrowdsaleConfig {
     // 33% of the total supply cap
     uint256 public constant SALE_CAP = 1980000000 * MIN_TOKEN_UNIT;
 
-    // Minimum cap per purchaser on public sale = $50 in KEY (at $0.015)
+    // Minimum cap per purchaser on public sale = $100 in KEY (at $0.015)
     uint256 public constant PURCHASER_MIN_TOKEN_CAP = 6666 * MIN_TOKEN_UNIT;
 
     // Maximum cap per purchaser on first day of public sale = $3,000 in KEY (at $0.015)
@@ -44,12 +44,12 @@ contract CrowdsaleConfig {
     uint256 public constant TOKEN_PRICE_THOUSANDTH = 15;  // $0.015 per KEY
 
     // Contract wallet addresses for initial allocation
-    address public constant CROWDSALE_WALLET_ADDR = 0x411A83c2b938EBF256939CDB552f5D176E8d4009;
-    address public constant FOUNDATION_POOL_ADDR = 0xC719DB33389eA25F5e72C1338dADb1D46F34b06E;
-    address public constant COMMUNITY_POOL_ADDR = 0xD96969247B51187da3bf6418B3ED39304ae2006c;
-    address public constant FOUNDERS_POOL_ADDR = 0x7ac25aAc6a1c082aEbA716e614b0F8d1E3727aFB;
-    address public constant LEGAL_EXPENSES_ADDR_1 = 0x68335F976E97C6c0362f697BB9e5a70f44FA33a8;
-    address public constant LEGAL_EXPENSES_ADDR_2 = 0x03bd20e5f5f81b75D9fc1f1D1f1634dfa309DfC4;
+    address public constant CROWDSALE_WALLET_ADDR = 0xE0831b1687c9faD3447a517F9371E66672505dB0;
+    address public constant FOUNDATION_POOL_ADDR = 0xD68947892Ef4D94Cdef7165b109Cf6Cd3f58A8e8;
+    address public constant COMMUNITY_POOL_ADDR = 0x0506c5485AE54aB14C598Ef16C459409E5d8Fc03;
+    address public constant FOUNDERS_POOL_ADDR = 0x4452d6454e777743a5Ee233fbe873055008fF528;
+    address public constant LEGAL_EXPENSES_ADDR_1 = 0xb57911380F13A0a9a6Ba6562248674B5f56D7BFE;
+    address public constant LEGAL_EXPENSES_ADDR_2 = 0x9be281CdcF34B3A01468Ad1008139410Ba5BB2fB;
 
     // 6 months period, in seconds, for pre-commitment half-vesting
     uint64 public constant PRECOMMITMENT_VESTING_SECONDS = 15552000;
