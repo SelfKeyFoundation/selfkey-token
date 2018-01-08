@@ -31,7 +31,7 @@
     "test:cov": "solidity-coverage",
     "lint:sol": "solhint ./**/*.sol",
     "lint:js": "eslint .",
-    "deploy:ropsten": "truffle migrate --network ropsten"
+    "deploy:ropsten": "truffle migrate --network ropsten -f 2"
   },
   "repository": "https://github.com/SelfKeyFoundation/selfkey-token",
   "keywords": [
