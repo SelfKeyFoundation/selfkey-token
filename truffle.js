@@ -16,7 +16,7 @@ const DEFAULT = {
 }
 
 const walletPath = './wallet.json'
-//const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+// const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
 const providerUrl = 'https://mainnet.infura.io/SYGRk61NUc3yN4NNRs60'
 const { addresses, engine } = deployer(walletPath, providerUrl)
 
