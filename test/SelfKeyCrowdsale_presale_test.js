@@ -1,19 +1,14 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 
-const { rate, presaleRate, goal } = require('./utils/common')
+const assertThrows = require('./utils/assertThrows')
+const { goal } = require('./utils/common')
 
 contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
+  const YEAR_IN_SECONDS = 31622400
   const now = (new Date()).getTime() / 1000
-  const start = now + 31622400 // 1 year from now
-  const end = start + 31622400 // 1 year from start
-
-  const [
-    legalExpensesWallet,
-    foundersPool,
-    foundationPool,
-    wallet
-  ] = accounts.slice(6)
+  const start = now + YEAR_IN_SECONDS
+  const end = start + YEAR_IN_SECONDS
 
   const [buyer3, buyer2, buyer] = accounts.slice(3)
 
@@ -24,70 +19,109 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     presaleCrowdsale = await SelfKeyCrowdsale.new(
       start,
       end,
-      rate,
-      presaleRate,
-      wallet,
-      foundationPool,
-      foundersPool,
-      legalExpensesWallet,
       goal
     )
     const token = await presaleCrowdsale.token.call()
     presaleToken = await SelfKeyToken.at(token)
   })
 
-  it('can deploy in pre-sale mode', () => {
+  it('does not allow end date to be earlier or the same than start date', async () => {
+    await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
+  })
+
+  it('deploys successfully in pre-sale mode', () => {
     assert.isNotNull(presaleCrowdsale)
     assert.isNotNull(presaleToken)
   })
 
   // Offchain purchases
-  it("adds 'pre-commitments' for off-chain contributions with bonus, no vesting", async () => {
-    const sendAmount = web3.toWei(1, 'ether')
-    const bonusFactor = 70
-    const value1 = await presaleCrowdsale.weiRaised.call()
-    await presaleCrowdsale.addPrecommitment(buyer2, sendAmount, bonusFactor, 0)
-    const value2 = await presaleCrowdsale.weiRaised.call()
-    // Check contribution wei has been successfully registered in the crowdsale
-    assert.equal(value2 - value1, sendAmount)
-    // Check tokens have been allocated correctly
-    const balance = await presaleToken.balanceOf.call(buyer2)
-    const newRate = rate + (rate * (bonusFactor / 100))
-    assert.equal(Number(balance), sendAmount * newRate)
+  it("adds 'pre-commitments' for off-chain contributions, no vesting", async () => {
+    const allocation = web3.toWei(5, 'ether')   // allocates 5 KEY
+    const balance1 = await presaleToken.balanceOf.call(buyer2)
+
+    // test non-timelocked pre-commitment
+    await presaleCrowdsale.addPrecommitment(buyer2, allocation, false)
+    const balance2 = await presaleToken.balanceOf.call(buyer2)
+    assert.equal(balance2 - balance1, allocation)
   })
 
   it("adds 'pre-commitments' with vesting", async () => {
-    const sendAmount = web3.toWei(1, 'ether')    // approx. $12M if 1 ETH = $300
-    const bonusFactor = 50
-    const vestingMonths = 3
-    const value1 = await presaleCrowdsale.weiRaised.call()
-    await presaleCrowdsale.addPrecommitment(buyer3, sendAmount, bonusFactor, vestingMonths)
-    const value2 = await presaleCrowdsale.weiRaised.call()
-    // check contribution wei has been successfully registered in the crowdsale
-    assert.equal(value2 - value1, sendAmount)
-    // check tokens have been allocated correctly
-    const balance = await presaleToken.balanceOf.call(buyer3)
-    const newRate = rate + (rate * (bonusFactor / 100))
-    const tokensAllocated = sendAmount * newRate
+    const allocation = web3.toWei(10, 'ether')    // allocates 10 KEY
+    // const balance1 = await presaleToken.balanceOf.call(buyer3)
+
+    // test (half)timelocked pre-commitment
+    await presaleCrowdsale.addPrecommitment(buyer3, allocation, true)
+    const balance2 = await presaleToken.balanceOf.call(buyer3)
+
     // check half tokens are immediately transferred to participant's wallet
-    assert.equal(Number(balance), tokensAllocated / 2)
+    assert.equal(Number(balance2), allocation / 2)
+
+    // check the other half is sent to the time-lock
     const timelockAddress = await presaleCrowdsale.vestedTokens.call(buyer3)
     const vestedBalance = await presaleToken.balanceOf.call(timelockAddress)
-    // check the other half is sent to the time-lock
-    assert.equal(vestedBalance, tokensAllocated - (tokensAllocated / 2))
-    // THE FOLLOWING SHOULD FAIL SINCE TOKENS ARE STILL LOCKED
-    // return presaleCrowdsale.releaseLock(buyer3);
+    assert.equal(vestedBalance, allocation - (allocation / 2))
+
+    // test failure on premature release of tokens
+    await assertThrows(presaleCrowdsale.releaseLock(buyer3))
   })
 
-  // Public pre-sale
-  it('receives ETH and allocate due tokens for kyc-verified addresses', async () => {
+  it('adds vested tokens to already existing vested pre-sale participant', async () => {
+    const sender = buyer3
+
+    const allocation = web3.toWei(10, 'ether')    // allocates 10 KEY
+    const timelockAddress = await presaleCrowdsale.vestedTokens.call(sender)
+    assert.notEqual(timelockAddress, 0x0)
+    const vestedBalance1 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance1), 0)
+
+    // test vested pre-commitment
+    const balance1 = await presaleToken.balanceOf.call(sender)
+    await presaleCrowdsale.addPrecommitment(sender, allocation, true)
+    const balance2 = await presaleToken.balanceOf.call(sender)
+
+    // check half tokens are immediately transferred to participant's wallet
+    assert.equal(Number(balance2) - Number(balance1), allocation / 2)
+
+    // check the other half is sent to the time-lock
+    const vestedBalance2 = await presaleToken.balanceOf.call(timelockAddress)
+    assert.isAbove(Number(vestedBalance2), Number(vestedBalance1))
+    // assert.equal(Number(vestedBalance2) - Number(vestedBalance1), allocation - (allocation / 2))
+
+    // test failure on premature release of tokens
+    await assertThrows(presaleCrowdsale.releaseLock(sender))
+  })
+
+  it('does not allow any contributions before start time', async () => {
+    const sender = buyer
+
     const sendAmount = web3.toWei(1, 'ether')
-    const walletBalance = web3.eth.getBalance(wallet)
-    // SHOULD FAIL AS PARTICIPANT IS NOT WHITELISTED (KYC-VERIFIED) YET
-    // await presaleCrowdsale.sendTransaction({from: buyer, value: sendAmount, gas: 999999})
-    await presaleCrowdsale.verifyKYC(buyer)
-    await presaleCrowdsale.sendTransaction({ from: buyer, value: sendAmount })
-    const balance = await presaleToken.balanceOf.call(buyer)
-    assert.equal(Number(balance), presaleRate * sendAmount)
+    await presaleCrowdsale.verifyKYC(sender)
+    await assertThrows(presaleCrowdsale.sendTransaction({ from: sender, value: sendAmount }))
+  })
+
+  it('allows the updating of ETH price before sale starts', async () => {
+    // const rate1 = await presaleCrowdsale.rate.call()
+    const newEthPrice = 800
+
+    // Set new ETH price and get related attributes
+    await presaleCrowdsale.setEthPrice(newEthPrice)
+    const rate2 = await presaleCrowdsale.rate.call()
+    const keyPrice = await presaleCrowdsale.TOKEN_PRICE_THOUSANDTH.call()
+
+    // Calculate rates and caps to compare
+    const expectedRate = parseInt((newEthPrice * 1000) / keyPrice, 10)
+
+    assert.equal(expectedRate, rate2)
+  })
+
+  it('does not allow to set an ETH price equal to zero or negative number', async () => {
+    assertThrows(presaleCrowdsale.setEthPrice(0))
+    assertThrows(presaleCrowdsale.setEthPrice(-999))
+  })
+
+  it('does not release the founders\' locked tokens too soon', async () => {
+    await assertThrows(presaleCrowdsale.releaseLockFounders1())
+    await assertThrows(presaleCrowdsale.releaseLockFounders2())
+    await assertThrows(presaleCrowdsale.releaseLockFoundation())
   })
 })

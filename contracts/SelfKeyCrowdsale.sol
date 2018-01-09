@@ -1,12 +1,15 @@
+/* solhint-disable not-rely-on-time */
+
 pragma solidity ^0.4.18;
 
 import './SelfKeyToken.sol';
 import './CrowdsaleConfig.sol';
-import './KYCRefundVault.sol';
+
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
+import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
 
 
 /**
@@ -18,50 +21,39 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
     using SafeERC20 for SelfKeyToken;
 
-    address public wallet;
-
     // Token contract
     SelfKeyToken public token;
 
     uint64 public startTime;
     uint64 public endTime;
 
-    // How many token units a buyer gets per wei
-    uint256 public rate;
-
-    // How many token units a buyer gets per wei during pre-sale
-    uint256 public presaleRate;
-
-    // Amount of raised money in wei
-    uint256 public weiRaised;
-
-    // Minimum cap expected to raise in wei
+    // Minimum tokens expected to sell
     uint256 public goal;
+
+    // How many tokens a buyer gets per ETH
+    uint256 public rate = 51800;
+
+    // ETH price in USD, can be later updated until start date
+    uint256 public ethPrice = 777;
 
     // Total amount of tokens purchased, including pre-sale
     uint256 public totalPurchased = 0;
 
-    // counter of how many tokens are still locked to non-verified participants
-    uint256 public lockedTotal = 0;
-
     mapping(address => bool) public kycVerified;
-    mapping(address => uint256) public lockedBalance;
-    mapping(address => uint256) public weiContributed;
+    mapping(address => uint256) public tokensPurchased;
 
+    // a mapping of dynamically instantiated token timelocks for each pre-commitment beneficiary
     mapping(address => address) public vestedTokens;
 
     bool public isFinalized = false;
 
-    // Initial distribution addresses
-    address public foundationPool;
-    address public foundersPool;
-    address public legalExpensesWallet;
-
     // Token Timelocks
-    TokenTimelock public timelockFounders;
+    TokenTimelock public foundersTimelock1;
+    TokenTimelock public foundersTimelock2;
+    TokenTimelock public foundationTimelock;
 
-    // Vault to hold funds until crowdsale is finalized. Allows refunding.
-    KYCRefundVault public vault;
+    // Vault to hold funds until crowdsale is finalized. Allows refunding if crowdsale is not successful.
+    RefundVault public vault;
 
     // Crowdsale events
     event TokenPurchase(
@@ -73,14 +65,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     event VerifiedKYC(address indexed participant);
 
-    event RejectedKYC(address indexed participant);
-
     event AddedPrecommitment(
         address indexed participant,
-        uint256 contribution,
-        uint256 bonusFactor,
-        uint256 _rate,
-        uint64 vestingMonths
+        uint256 tokensAllocated
     );
 
     event Finalized();
@@ -89,53 +76,48 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Crowdsale contract constructor
      * @param _startTime — Unix timestamp representing the crowdsale start time
      * @param _endTime — Unix timestamp representing the crowdsale start time
-     * @param _rate — The number of tokens a buyer gets per wei
-     * @param _presaleRate — The number of tokens a pre-sale buyer gets per wei
-     * @param _wallet — what is this?
-     * @param _foundationPool — what is this?
-     * @param _foundersPool — what is this?
-     * @param _legalExpensesWallet — what is this?
-     * @param _goal — Minimum cap expected to raise in wei.
+     * @param _goal — Minimum amount of tokens expected to sell.
      */
     function SelfKeyCrowdsale(
         uint64 _startTime,
         uint64 _endTime,
-        uint256 _rate,
-        uint256 _presaleRate,
-        address _wallet,
-        address _foundationPool,
-        address _foundersPool,
-        address _legalExpensesWallet,
         uint256 _goal
     ) public
     {
         require(_endTime > _startTime);
-        require(_rate > 0);
-        require(_wallet != 0x0);
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
-        // mints all tokens and gives them to the crowdsale
+
+        // mints all possible tokens to the crowdsale contract
         token.mint(address(this), TOTAL_SUPPLY_CAP);
         token.finishMinting();
 
         startTime = _startTime;
         endTime = _endTime;
-        rate = _rate;
-        presaleRate = _presaleRate;
-        wallet = _wallet;
         goal = _goal;
 
-        vault = new KYCRefundVault(wallet);
+        vault = new RefundVault(CROWDSALE_WALLET_ADDR);
 
-        foundationPool = _foundationPool;
-        foundersPool = _foundersPool;
-        legalExpensesWallet = _legalExpensesWallet;
+        // Set timelocks to 6 months and a year after startTime, respectively
+        uint64 sixMonthLock = uint64(startTime + 15552000);
+        uint64 yearLock = uint64(startTime + 31104000);
 
-        // Set timelocks to 1 year after startTime
-        uint64 unlockAt = uint64(startTime + 31622400);
-        timelockFounders = new TokenTimelock(token, foundersPool, unlockAt);
+        // Instantiation of token timelocks
+        foundersTimelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, sixMonthLock);
+        foundersTimelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, yearLock);
+        foundationTimelock = new TokenTimelock(token, FOUNDATION_POOL_ADDR, yearLock);
 
-        distributeInitialFunds();
+        // Genesis allocation of tokens
+        token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
+        token.safeTransfer(COMMUNITY_POOL_ADDR, COMMUNITY_POOL_TOKENS);
+        token.safeTransfer(FOUNDERS_POOL_ADDR, FOUNDERS_TOKENS);
+        token.safeTransfer(LEGAL_EXPENSES_ADDR_1, LEGAL_EXPENSES_1_TOKENS);
+        token.safeTransfer(LEGAL_EXPENSES_ADDR_2, LEGAL_EXPENSES_2_TOKENS);
+
+        // Allocation of vested tokens
+        token.safeTransfer(foundersTimelock1, FOUNDERS_TOKENS_VESTED_1);
+        token.safeTransfer(foundersTimelock2, FOUNDERS_TOKENS_VESTED_2);
+        token.safeTransfer(foundationTimelock, FOUNDATION_POOL_TOKENS_VESTED);
     }
 
     /**
@@ -147,10 +129,23 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
+     * @dev Updates the ETH/USD conversion rate as long as the public sale hasn't started
+     * @param _ethPrice - Updated conversion rate
+     */
+    function setEthPrice(uint256 _ethPrice) public onlyOwner {
+        require(now < startTime);
+        require(_ethPrice > 0);
+
+        ethPrice = _ethPrice;
+        rate = ethPrice.mul(1000).div(TOKEN_PRICE_THOUSANDTH);
+    }
+
+    /**
      * @dev Must be called after crowdsale ends, to do some extra finalization
      *      work. Calls the contract's finalization function.
      */
     function finalize() public onlyOwner {
+        require(now > startTime);
         require(!isFinalized);
 
         finalization();
@@ -160,195 +155,111 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev If crowdsale is unsuccessful, investors can claim refunds.
+     * @dev If crowdsale is unsuccessful, a refund can be claimed back
      */
-    function claimRefund() public {
+    function claimRefund(address participant) public {
         // requires sale to be finalized and goal not reached,
-        // unless sender has been enabled explicitly
-        if (!vault.refundEnabled(msg.sender)) {
-            require(isFinalized);
-            require(!goalReached());
-        }
+        require(isFinalized);
+        require(!goalReached());
 
-        vault.refund(msg.sender);
+        vault.refund(participant);
     }
 
     /**
      * @dev If crowdsale is unsuccessful, participants can claim refunds
      */
     function goalReached() public constant returns (bool) {
-        return weiRaised >= goal;
+        return totalPurchased >= goal;
     }
 
     /**
-     * @dev Release Founders' time-locked tokens
+     * @dev Release time-locked tokens
      */
-    function releaseLockFounders() public {
-        timelockFounders.release();
+    function releaseLockFounders1() public {
+        foundersTimelock1.release();
+    }
+
+    function releaseLockFounders2() public {
+        foundersTimelock2.release();
+    }
+
+    function releaseLockFoundation() public {
+        foundationTimelock.release();
     }
 
     /**
-     * @dev Release time-locked tokens for pre-commitment participants
+     * @dev Release time-locked tokens for any vested address
      */
     function releaseLock(address participant) public {
         require(vestedTokens[participant] != 0x0);
+
         TokenTimelock timelock = TokenTimelock(vestedTokens[participant]);
         timelock.release();
     }
 
     /**
      * @dev Verifies KYC for given participant.
-     *      This enables token transfers from the participant address
+     *      This enables token purchases by the participant addres
      */
     function verifyKYC(address participant) public onlyOwner {
         kycVerified[participant] = true;
-
-        if (lockedBalance[participant] > 0) {
-            uint256 tokens = lockedBalance[participant];
-            lockedTotal = lockedTotal.sub(tokens);
-            lockedBalance[participant] = 0;
-            token.safeTransfer(participant, tokens);
-        }
 
         VerifiedKYC(participant);
     }
 
     /**
-     * @dev Rejects KYC for given participant.
-     *      This disables token transfers from participant address
+     * @dev Adds an address for pre-sale commitments made off-chain.
+     * @param beneficiary — Address of the already verified participant
+     * @param tokensAllocated — Exact amount of KEY tokens (including decimal places) to allocate
+     * @param halfVesting — determines whether the half the tokens will be time-locked or not
      */
-    function rejectKYC(address participant) public onlyOwner {
-        require(!kycVerified[participant]);
-        kycVerified[participant] = false;
-
-        if (lockedBalance[participant] > 0) {
-            uint256 tokens = lockedBalance[participant];
-            lockedTotal = lockedTotal.sub(tokens);
-            totalPurchased = totalPurchased.sub(tokens);
-            weiRaised = weiRaised.sub(vault.deposited(participant));
-            lockedBalance[participant] = 0;
-            weiContributed[participant] = 0;
-            // enable vault funds as refundable for this participant address
-            vault.enableKYCRefund(participant);
-        }
-
-        RejectedKYC(participant);
-    }
-
-    /**
-    * @dev Adds an address for pre-sale commitments made off-chain.
-    * Contribution = 0 is valid, to just whitelist the address as KYC-verified.
-    */
     function addPrecommitment(
         address beneficiary,
-        uint256 weiContribution,
-        uint256 bonusFactor,
-        uint64 vestingPeriod
+        uint256 tokensAllocated,
+        bool halfVesting
     ) public onlyOwner
     {
         // requires to be on pre-sale
         require(now < startTime); // solhint-disable-line not-rely-on-time
-        // requires unfinalized state (in case owner finalizes before startTime)
-        require(!isFinalized);
-        require(bonusFactor >= 0);
-        require(vestingPeriod >= 0);
 
         kycVerified[beneficiary] = true;
 
-        if (weiContribution > 0) {
-            // calculate token allocation at bonus price
-            uint256 newRate = rate.add(rate.mul(bonusFactor).div(100));
-            uint256 tokens = newRate * weiContribution;
-            //  Presale_cap must not be exceeded
-            require(totalPurchased.add(tokens) <= PRESALE_CAP);
+        uint256 tokens = tokensAllocated;
+        totalPurchased = totalPurchased.add(tokens);
+        tokensPurchased[beneficiary] = tokensPurchased[beneficiary].add(tokens);
 
-            weiRaised = weiRaised.add(weiContribution);
-            weiContributed[beneficiary] = weiContributed[beneficiary].add(weiContribution);
-            totalPurchased = totalPurchased.add(tokens);
+        if (halfVesting) {
+            // half the tokens are put into a time-lock for a pre-defined period
+            uint64 endTimeLock = uint64(startTime + PRECOMMITMENT_VESTING_SECONDS);
 
-            if (vestingPeriod == 0) {
-                token.safeTransfer(beneficiary, tokens);
-            } else {
-                uint64 vestingSeconds = vestingPeriod * 30 days;
-                uint256 half = tokens.div(2);
-                uint64 endTimeLock = uint64(startTime + vestingSeconds);
-                TokenTimelock timelock = new TokenTimelock(token, beneficiary, endTimeLock);
+            // Sets a timelock for half the tokens allocated
+            uint256 half = tokens.div(2);
+            TokenTimelock timelock;
+
+            if (vestedTokens[beneficiary] == 0x0) {
+                timelock = new TokenTimelock(token, beneficiary, endTimeLock);
                 vestedTokens[beneficiary] = address(timelock);
-                token.safeTransfer(beneficiary, half);
-                token.safeTransfer(timelock, tokens.sub(half));
+            } else {
+                timelock = TokenTimelock(vestedTokens[beneficiary]);
             }
 
-            AddedPrecommitment(
-                beneficiary,
-                weiContribution,
-                bonusFactor,
-                newRate,
-                vestingPeriod
-            );
-        }
-    }
-
-    /**
-     * @dev Low level token purchase. Only callable internally.
-     */
-    function buyTokens(address beneficiary) internal {
-        require(beneficiary != 0x0);
-        require(!isFinalized);
-        require(validPurchase(beneficiary));
-        require(msg.value != 0);
-
-        uint256 weiAmount = msg.value;
-        // Calculate the token amount to be allocated
-        uint256 tokens = weiAmount.mul(rate);
-
-        // if pre-sale
-        if (now < startTime) { // solhint-disable-line not-rely-on-time
-            require(kycVerified[beneficiary]);
-
-            // re-calculate the token amount to be allocated
-            tokens = weiAmount.mul(presaleRate);
-
-            //  Presale_cap must not be exceeded
-            require(totalPurchased.add(tokens) <= PRESALE_CAP);
-        }
-
-        // Total sale cap must not be exceeded
-        require(totalPurchased.add(tokens) <= SALE_CAP);
-
-        // Update state
-        weiRaised = weiRaised.add(weiAmount);
-        weiContributed[beneficiary] = weiContributed[beneficiary].add(weiAmount);
-        totalPurchased = totalPurchased.add(tokens);
-
-        if (kycVerified[beneficiary]) {
-            token.safeTransfer(beneficiary, tokens);
+            token.safeTransfer(beneficiary, half);
+            token.safeTransfer(timelock, tokens.sub(half));
         } else {
-            lockedBalance[beneficiary] = lockedBalance[beneficiary].add(tokens);
-            lockedTotal = lockedTotal.add(tokens);
+            // all tokens are sent to the participant's address
+            token.safeTransfer(beneficiary, tokens);
         }
 
-        TokenPurchase(
-            msg.sender,
+        AddedPrecommitment(
             beneficiary,
-            weiAmount,
             tokens
         );
-        forwardFunds(beneficiary);
-    }
-
-    /**
-     * @dev Forwards funds to contract wallet.
-     */
-    function forwardFunds(address beneficiary) internal {
-        vault.deposit.value(msg.value)(beneficiary); // Store funds in "refund vault"
     }
 
     /**
      * @dev Additional finalization logic. Enables token transfers.
      */
     function finalization() internal {
-        require(lockedTotal == 0); // requires there are no pending KYC checks
-
         if (goalReached()) {
             burnUnsold();
             vault.close();
@@ -359,24 +270,44 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
-     * @dev Initial allocation of tokens
+     *  @dev Low level token purchase. Only callable internally. Participants MUST be KYC-verified before purchase
+     *  @param participant — The address of the token purchaser
      */
-    function distributeInitialFunds() internal {
-        token.safeTransfer(foundationPool, FOUNDATION_POOL_TOKENS);
-        token.safeTransfer(timelockFounders, FOUNDERS_TOKENS_VESTED);
-        token.safeTransfer(legalExpensesWallet, LEGAL_EXPENSES_TOKENS);
-    }
+    function buyTokens(address participant) internal {
+        require(kycVerified[participant]);
+        require(now >= startTime);
+        require(now < endTime);
+        require(!isFinalized);
+        require(msg.value != 0);
 
-    /**
-     * @dev Returns true if purchase is made during valid period
-     *      and contribution is above between caps
-     */
-    function validPurchase(address beneficiary) internal constant returns (bool) {
-        bool withinPeriod = now <= endTime; // solhint-disable-line not-rely-on-time
-        uint256 amount = weiContributed[beneficiary];
-        bool aboveMinPurchaseCap = amount.add(msg.value) >= PURCHASE_MIN_CAP_WEI;
-        bool belowMaxPurchaseCap = amount.add(msg.value) <= PURCHASE_MAX_CAP_WEI;
-        return withinPeriod && aboveMinPurchaseCap && belowMaxPurchaseCap;
+        // Calculate the token amount to be allocated
+        uint256 weiAmount = msg.value;
+        uint256 tokens = weiAmount.mul(rate);
+
+        // Update state
+        tokensPurchased[participant] = tokensPurchased[participant].add(tokens);
+        totalPurchased = totalPurchased.add(tokens);
+
+        require(totalPurchased <= SALE_CAP);
+        require(tokensPurchased[participant] >= PURCHASER_MIN_TOKEN_CAP);
+
+        if (now < startTime + 86400) {
+            // if still during the first day of token sale, apply different max cap
+            require(tokensPurchased[participant] <= PURCHASER_MAX_TOKEN_CAP_DAY1);
+        } else {
+            require(tokensPurchased[participant] <= PURCHASER_MAX_TOKEN_CAP);
+        }
+
+        // Sends ETH contribution to the RefundVault and tokens to participant
+        vault.deposit.value(msg.value)(participant);
+        token.safeTransfer(participant, tokens);
+
+        TokenPurchase(
+            msg.sender,
+            participant,
+            weiAmount,
+            tokens
+        );
     }
 
     /**
@@ -384,9 +315,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      *      This should be called after sale finalization
      */
     function burnUnsold() internal {
-        // All tokens held by this contract, except for those
-        // still locked to participants, get burned
-        uint256 tokens = token.balanceOf(this).sub(lockedTotal);
-        token.burn(tokens);
+        // All tokens held by this contract get burned
+        token.burn(token.balanceOf(this));
     }
 }

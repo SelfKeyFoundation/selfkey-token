@@ -1,7 +1,7 @@
 const deployer = require('./deployer')
 
 const {
-  name: package_name,
+  name: packageName,
   version,
   description,
   keywords,
@@ -16,11 +16,12 @@ const DEFAULT = {
 }
 
 const walletPath = './wallet.json'
-const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+// const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+const providerUrl = 'https://mainnet.infura.io/SYGRk61NUc3yN4NNRs60'
 const { addresses, engine } = deployer(walletPath, providerUrl)
 
 module.exports = {
-  package_name,
+  packageName,
   version,
   description,
   keywords,
@@ -30,14 +31,20 @@ module.exports = {
     'Dave Sag <david.sag@industrie.co>'
   ],
   networks: {
-    development: DEFAULT,
-    test: DEFAULT,
     geth: { ...DEFAULT, gas: 999999 },
     ropsten: {
       network_id: 3,
       provider: engine,
       from: addresses[0],
-      gas: 5000000
+      gas: 4700000,
+      gasPrice: 1000000000000
+    },
+    mainnet: {
+      network_id: 1,
+      provider: engine,
+      from: addresses[0],
+      gas: 4700000,
+      gasPrice: 60000000000
     }
   },
   solc: {

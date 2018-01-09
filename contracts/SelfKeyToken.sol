@@ -60,7 +60,7 @@ contract SelfKeyToken is MintableToken {
 
     /**
      * @dev Checks modifier and allows transfer if tokens are not locked.
-     * @param _to — The address to send tokens from
+     * @param _from — The address to send tokens from
      * @param _to — The address to receive tokens
      * @param _value — The number of tokens to send
      */
