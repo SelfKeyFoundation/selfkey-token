@@ -5,45 +5,50 @@
   "main": "truffle.js",
   "directories": {
     "test": "test",
-    "app": "app",
     "contracts": "contracts"
   },
   "engines": {
-    "node": "9.2.0",
-    "npm": "5.5.1"
+    "node": "9.3.0",
+    "npm": "5.6.0"
   },
   "dependencies": {
     "bip39": "^2.4.0",
     "ethereumjs-wallet": "^0.6.0",
-    "web3": "^1.0.0-beta.26",
-    "web3-provider-engine": "^13.3.3",
-    "zeppelin-solidity": "^1.4.0"
+    "web3": "^0.20.2",
+    "web3-provider-engine": "^8.6.1",
+    "zeppelin-solidity": "^1.5.0"
   },
   "devDependencies": {
-    "eslint": "^4.12.0",
+    "eslint": "^4.14.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
     "faker": "^4.1.0",
-    "ganache-cli": "^6.0.3",
     "solhint": "^1.1.8",
-    "solidity-coverage": "^0.4.2"
+    "solidity-coverage": "^0.4.7"
   },
   "scripts": {
-    "testrpc": "ganache-cli --port 8545 --unlock 0",
     "test": "truffle test",
     "test:cov": "solidity-coverage",
     "lint:sol": "solhint ./**/*.sol",
     "lint:js": "eslint .",
-    "deploy:ropsten": "truffle migrate --network ropsten"
+    "deploy:ropsten": "truffle migrate --network ropsten -f 2"
   },
-  "repository": "https://github.com/SelfKeyFoundation/selfkey",
+  "repository": "https://github.com/SelfKeyFoundation/selfkey-token",
   "keywords": [
-    "ethereum"
+    "ethereum",
+    "ERC20",
+    "crowdsale",
+    "SelfKeyFoundation",
+    "Identity"
   ],
-  "author": "David Sag <david.sag@industrie.co>",
+  "author": "Carlos Bruguera <cbruguera@gmail.com>",
+  "contributors": [
+    "David Sag <david.sag@industrie.co>",
+    "Edmund To <edmund.to@industrie.co>"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/SelfKeyFoundation/selfkey/issues"
+    "url": "https://github.com/SelfKeyFoundation/selfkey-token/issues"
   },
-  "homepage": "https://github.com/SelfKeyFoundation/selfkey#readme"
+  "homepage": "https://github.com/SelfKeyFoundation/selfkey-token#readme"
 }

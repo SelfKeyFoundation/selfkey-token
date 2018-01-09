@@ -1,5 +1,7 @@
 # SelfKey Token
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/SelfKeyFoundation/selfkey-token.svg)](https://greenkeeper.io/)
+
 An `ERC20` token used to fuel a wide range of KYC related dapps
 
 * `develop` [![Build Status](https://travis-ci.org/SelfKeyFoundation/selfkey-token.svg?branch=develop)](https://travis-ci.org/SelfKeyFoundation/selfkey-token) [![codecov](https://codecov.io/gh/SelfKeyFoundation/selfkey-token/branch/develop/graph/badge.svg)](https://codecov.io/gh/SelfKeyFoundation/selfkey-token)
@@ -46,19 +48,15 @@ as well as other truffle commands. See [truffleframework.com](http://trufflefram
 
 #### Standalone
 
-In one terminal run
-
-    npm run testrpc
-
-Then in another run
+Run
 
     npm test
 
 To generate code coverage reports run
 
-    npm test:cov
+    npm run test:cov
 
-*Note* Generating code coverage reports takes a lot longer to run than just running the tests.
+*Note* Generating code coverage reports takes a bit longer to run than just running the tests.
 
 ### Linting
 
@@ -69,9 +67,16 @@ We provide the following linting options
 
 ### Deploying to `ropsten`
 
+You'll need an address on the Ropsten blockchain with some ETH in it.
+
+Use [MetaMask](https://metamask.io) to create a wallet and use [faucet.metamask.io](https://faucet.metamask.io/) to get some ETH for it.
+
 You will need to supply a file called `wallet.json` in the root of the project.
 
-_speak to Carlos about what goes in this file_
+    {
+      "name": "my awesome wallet",
+      "mnemonic": "the sequence of twelve words you used to keep your wallet secure"
+    }
 
 Then run
 
