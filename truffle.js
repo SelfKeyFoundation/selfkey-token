@@ -1,4 +1,5 @@
-const deployer = require('./deployer')
+const hdWallet = require('./hdWallet')
+const web3Engine = require('./web3Engine')
 
 const {
   name: packageName,
@@ -16,9 +17,17 @@ const DEFAULT = {
 }
 
 const walletPath = './wallet.json'
-const providerUrl = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
-// const providerUrl = 'https://mainnet.infura.io/SYGRk61NUc3yN4NNRs60'
-const { addresses, engine } = deployer(walletPath, providerUrl)
+
+const providerUrlRopsten = 'https://ropsten.infura.io/SYGRk61NUc3yN4NNRs60'
+const providerUrlMainnet = 'https://mainnet.infura.io/SYGRk61NUc3yN4NNRs60'
+
+const wallets = hdWallet(walletPath)
+
+const getAddress = wallet => `0x${wallet.getAddress().toString('hex')}`
+const addresses = wallets.map(getAddress)
+
+const engineRopsten = web3Engine(wallets, providerUrlRopsten)
+const engineMainnet = web3Engine(wallets, providerUrlMainnet)
 
 module.exports = {
   packageName,
@@ -34,17 +43,17 @@ module.exports = {
     geth: { ...DEFAULT, gas: 999999 },
     ropsten: {
       network_id: 3,
-      provider: engine,
+      provider: engineRopsten,
       from: addresses[0],
       gas: 4700000,
-      gasPrice: 1000000000000
+      gasPrice: 222000000000
     },
     mainnet: {
       network_id: 1,
-      provider: engine,
+      provider: engineMainnet,
       from: addresses[0],
-      gas: 4700000,
-      gasPrice: 60000000000
+      gas: 8000000,
+      gasPrice: 91000000000
     }
   },
   solc: {
