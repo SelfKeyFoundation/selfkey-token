@@ -21,6 +21,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     using SafeMath for uint256;
     using SafeERC20 for SelfKeyToken;
 
+    // whitelist of addresses that can perform precommitments and KYC verifications
+    mapping(address => bool) public isVerifier;
+
     // Token contract
     SelfKeyToken public token;
 
@@ -72,6 +75,11 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
 
     event Finalized();
 
+    modifier verifierOnly() {
+      require(isVerifier[msg.sender]);
+      _;
+    }
+
     /**
      * @dev Crowdsale contract constructor
      * @param _startTime — Unix timestamp representing the crowdsale start time
@@ -85,6 +93,9 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     ) public
     {
         require(_endTime > _startTime);
+
+        // sets contract owner as a verifier
+        isVerifier[msg.sender] = true;
 
         token = new SelfKeyToken(TOTAL_SUPPLY_CAP);
 
@@ -118,6 +129,22 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         token.safeTransfer(foundersTimelock1, FOUNDERS_TOKENS_VESTED_1);
         token.safeTransfer(foundersTimelock2, FOUNDERS_TOKENS_VESTED_2);
         token.safeTransfer(foundationTimelock, FOUNDATION_POOL_TOKENS_VESTED);
+    }
+
+    /**
+     * @dev Adds an address to the whitelist of Verifiers
+     * @param _address - address of the verifier
+     */
+    function addVerifier (address _address) public onlyOwner {
+        isVerifier[_address] = true;
+    }
+
+    /**
+     * @dev Removes an address from the whitelist of Verifiers
+     * @param _address - address of the verifier to be removed
+     */
+    function removeVerifier (address _address) public onlyOwner {
+        isVerifier[_address] = false;
     }
 
     /**
@@ -201,7 +228,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      * @dev Verifies KYC for given participant.
      *      This enables token purchases by the participant addres
      */
-    function verifyKYC(address participant) public onlyOwner {
+    function verifyKYC(address participant) public verifierOnly {
         kycVerified[participant] = true;
 
         VerifiedKYC(participant);
@@ -217,7 +244,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         address beneficiary,
         uint256 tokensAllocated,
         bool halfVesting
-    ) public onlyOwner
+    ) public verifierOnly
     {
         // requires to be on pre-sale
         require(now < startTime); // solhint-disable-line not-rely-on-time
