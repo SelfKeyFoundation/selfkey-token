@@ -10,7 +10,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   const start = now + YEAR_IN_SECONDS
   const end = start + YEAR_IN_SECONDS
 
-  const [buyer3, buyer2, buyer] = accounts.slice(3)
+  const [buyer3, buyer2, buyer, verifier, verifier2, notVerifier, notOwner] = accounts.slice(3)
 
   let presaleCrowdsale
   let presaleToken
@@ -29,9 +29,47 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(SelfKeyCrowdsale.new(start, start, goal))
   })
 
-  it('deploys successfully in pre-sale mode', () => {
+  it('deploys successfully in pre-sale mode', async () => {
     assert.isNotNull(presaleCrowdsale)
     assert.isNotNull(presaleToken)
+
+    // verify owner is effectively added as a verifier
+    const ownerIsVerifier = await presaleCrowdsale.isVerifier.call(accounts[0])
+    assert.isTrue(ownerIsVerifier)
+  })
+
+  it('does not allow precommitments or verification calls from not verifiers', async () => {
+    const isVerifier = await presaleCrowdsale.isVerifier.call(notVerifier)
+    assert.isFalse(isVerifier)
+
+    await assertThrows(presaleCrowdsale.addPrecommitment(buyer, 999, false, { from: notVerifier }))
+    await assertThrows(presaleCrowdsale.verifyKYC(buyer, { from: notVerifier }))
+  })
+
+  it('allows adding new verifiers', async () => {
+    // add verifier
+    await presaleCrowdsale.addVerifier(verifier)
+    let isVerifier = await presaleCrowdsale.isVerifier.call(verifier)
+    assert.isTrue(isVerifier)
+
+    // add another verifier
+    await presaleCrowdsale.addVerifier(verifier2)
+    isVerifier = await presaleCrowdsale.isVerifier.call(verifier2)
+    assert.isTrue(isVerifier)
+  })
+
+  it('allows removal of verifiers', async () => {
+    let isVerifier = await presaleCrowdsale.isVerifier.call(verifier2)
+    assert.isTrue(isVerifier)
+
+    await presaleCrowdsale.removeVerifier(verifier2)
+    isVerifier = await presaleCrowdsale.isVerifier.call(verifier2)
+    assert.isFalse(isVerifier)
+  })
+
+  it('does not allow adding or removal of verifier by anyone other than the owner', async () => {
+    await assertThrows(presaleCrowdsale.addVerifier(buyer, { from: notOwner }))
+    await assertThrows(presaleCrowdsale.removeVerifier(verifier, { from: notOwner }))
   })
 
   // Offchain purchases
@@ -40,7 +78,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const balance1 = await presaleToken.balanceOf.call(buyer2)
 
     // test non-timelocked pre-commitment
-    await presaleCrowdsale.addPrecommitment(buyer2, allocation, false)
+    await presaleCrowdsale.addPrecommitment(buyer2, allocation, false, { from: verifier })
     const balance2 = await presaleToken.balanceOf.call(buyer2)
     assert.equal(balance2 - balance1, allocation)
   })
@@ -50,7 +88,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     // const balance1 = await presaleToken.balanceOf.call(buyer3)
 
     // test (half)timelocked pre-commitment
-    await presaleCrowdsale.addPrecommitment(buyer3, allocation, true)
+    await presaleCrowdsale.addPrecommitment(buyer3, allocation, true, { from: verifier })
     const balance2 = await presaleToken.balanceOf.call(buyer3)
 
     // check half tokens are immediately transferred to participant's wallet
