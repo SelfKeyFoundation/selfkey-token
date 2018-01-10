@@ -39,10 +39,10 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   })
 
   it('does not allow precommitments or verification calls from not verifiers', async () => {
-    let isVerifier = await presaleCrowdsale.isVerifier.call(notVerifier)
+    const isVerifier = await presaleCrowdsale.isVerifier.call(notVerifier)
     assert.isFalse(isVerifier)
 
-    await assertThrows(presaleCrowdsale.addPrecommitment(buyer, 999999, false, { from: notVerifier }))
+    await assertThrows(presaleCrowdsale.addPrecommitment(buyer, 999, false, { from: notVerifier }))
     await assertThrows(presaleCrowdsale.verifyKYC(buyer, { from: notVerifier }))
   })
 
