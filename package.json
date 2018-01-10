@@ -1,6 +1,6 @@
 {
   "name": "selfkey-token",
-  "version": "0.2.1",
+  "version": "1.1.0",
   "description": "The SelfKey Token is an ERC20 standard token that is used to fuel the SelfKey KYC dapps",
   "main": "truffle.js",
   "directories": {
