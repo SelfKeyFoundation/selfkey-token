@@ -76,8 +76,8 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     event Finalized();
 
     modifier verifierOnly() {
-      require(isVerifier[msg.sender]);
-      _;
+        require(isVerifier[msg.sender]);
+        _;
     }
 
     /**
@@ -132,6 +132,14 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
+     * @dev Fallback function is used to buy tokens.
+     *      It's the only entry point since `buyTokens` is internal
+     */
+    function () public payable {
+        buyTokens(msg.sender);
+    }
+
+    /**
      * @dev Adds an address to the whitelist of Verifiers
      * @param _address - address of the verifier
      */
@@ -145,14 +153,6 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function removeVerifier (address _address) public onlyOwner {
         isVerifier[_address] = false;
-    }
-
-    /**
-     * @dev Fallback function is used to buy tokens.
-     *      It's the only entry point since `buyTokens` is internal
-     */
-    function () public payable {
-        buyTokens(msg.sender);
     }
 
     /**
