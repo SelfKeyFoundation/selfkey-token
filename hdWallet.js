@@ -16,7 +16,7 @@ const hdWallet = (walletPath = './wallet.json') => {
 
     return wallets
   } catch (err) {
-    console.log('Caught error provisioning HD wallet: ', err.message)
+    console.log('Caught error provisioning HD wallet: ', err.message)   // no-console
     return []
   }
 }
