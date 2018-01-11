@@ -156,6 +156,30 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
     }
 
     /**
+     * @dev Sets a new start date
+     * @param _startTime - unix timestamp of the new start time
+     */
+    function setStartTime (uint64 _startTime) public onlyOwner {
+        require(now < startTime);
+        require(_startTime > now);
+        require(_startTime < endTime);
+
+        startTime = _startTime;
+    }
+
+    /**
+     * @dev Sets a new end date
+     * @param _endTime - unix timestamp of the new start time
+     */
+    function setEndTime (uint64 _endTime) public onlyOwner {
+        require(now < endTime);
+        require(_endTime > now);
+        require(_endTime > startTime);
+
+        endTime = _endTime;
+    }
+
+    /**
      * @dev Updates the ETH/USD conversion rate as long as the public sale hasn't started
      * @param _ethPrice - Updated conversion rate
      */

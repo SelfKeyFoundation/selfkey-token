@@ -53,7 +53,7 @@ module.exports = {
       provider: engineMainnet,
       from: addresses[0],
       gas: 7000000,
-      gasPrice: 200000000000
+      gasPrice: 75000000000
     }
   },
   solc: {
