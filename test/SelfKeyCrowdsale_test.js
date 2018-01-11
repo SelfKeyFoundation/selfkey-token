@@ -163,6 +163,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(Number(foundationVestedBalance), Number(expectedFoundationVested))
     })
 
+    it('cannot change start time if sale already started', async () => {
+      await assertThrows(crowdsaleContract.setStartTime(start + 999))
+    })
+
     it('allows KYC verification of participant address', async () => {
       // check address is initially unverified
       const sender = buyer
@@ -298,6 +302,17 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assertThrows(crowdsaleContract.setEthPrice(999))
     })
 
+    it('can change the end date if sale has not ended', async () => {
+      const additionalTime = 999
+      const beforeEnd = await crowdsaleContract.endTime.call()
+      await crowdsaleContract.setEndTime(Number(beforeEnd) + additionalTime)
+      const laterEnd = await crowdsaleContract.endTime.call()
+      assert.equal(Number(laterEnd), Number(beforeEnd) + additionalTime)
+
+      await assertThrows(crowdsaleContract.setEndTime(now - 999))
+      await assertThrows(crowdsaleContract.setEndTime(start - 1))
+    })
+
     it('does not allow contributions after end date', async () => {
       const sender = buyer
 
@@ -312,6 +327,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       // check transaction fails
       const sendAmount = web3.toWei(1, 'ether')
       await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+    })
+
+    it('cannot change end time if sale has already ended', async () => {
+      await assertThrows(crowdsaleContract.setEndTime(end + 999))
     })
 
     it('does not allow token transfers before crowdsale is finalized', async () => {
@@ -391,7 +410,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundationPool = await crowdsaleContract.FOUNDATION_POOL_ADDR.call()
       const foundersExpected1 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
       const foundersExpected2 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
-      const foundationExpected = await crowdsaleContract.FOUNDATION_POOL_TOKENS_VESTED.call()
+      const vestedExpected = await crowdsaleContract.FOUNDATION_POOL_TOKENS_VESTED.call()
 
       // forward time 6 months
       await timeTravel(sixMonths)
@@ -413,11 +432,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.equal(Number(foundersBalance3), Number(foundersBalance2) + Number(foundersExpected2))
 
       // check for second foundation vested release
-      const foundationBalance1 = await tokenContract.balanceOf(foundationPool)
+      const vestedAddress = await crowdsaleContract.FOUNDATION_POOL_ADDR_VEST.call()
+      const vestedBalance1 = await tokenContract.balanceOf(vestedAddress)
       await crowdsaleContract.releaseLockFoundation()
-      const foundationBalance2 = await tokenContract.balanceOf(foundationPool)
-      const newExpectedBalance = Number(foundationBalance1) + Number(foundationExpected)
-      assert.equal(Number(foundationBalance2), newExpectedBalance)
+      const vestedBalance2 = await tokenContract.balanceOf(vestedAddress)
+      const newExpectedBalance = Number(vestedBalance1) + Number(vestedExpected)
+      assert.equal(Number(vestedBalance2), newExpectedBalance)
     })
   })
 })
