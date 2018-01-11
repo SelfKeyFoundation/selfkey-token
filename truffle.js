@@ -52,7 +52,7 @@ module.exports = {
       network_id: 1,
       provider: engineMainnet,
       from: addresses[0],
-      gas: 7000000,
+      gas: 5000000,
       gasPrice: 75000000000
     }
   },
