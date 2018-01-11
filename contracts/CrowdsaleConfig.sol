@@ -25,8 +25,8 @@ contract CrowdsaleConfig {
     uint256 public constant PURCHASER_MAX_TOKEN_CAP = 1200000 * MIN_TOKEN_UNIT;
 
     // 16.5%
-    uint256 public constant FOUNDATION_POOL_TOKENS = 933333333 * MIN_TOKEN_UNIT;
-    uint256 public constant FOUNDATION_POOL_TOKENS_VESTED = 56666667 * MIN_TOKEN_UNIT;
+    uint256 public constant FOUNDATION_POOL_TOKENS = 876666666 * MIN_TOKEN_UNIT;
+    uint256 public constant FOUNDATION_POOL_TOKENS_VESTED = 113333334 * MIN_TOKEN_UNIT;
 
     // Approx 33%
     uint256 public constant COMMUNITY_POOL_TOKENS = 1980000000 * MIN_TOKEN_UNIT;
