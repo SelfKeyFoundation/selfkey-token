@@ -116,7 +116,7 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
         // Instantiation of token timelocks
         foundersTimelock1 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, sixMonthLock);
         foundersTimelock2 = new TokenTimelock(token, FOUNDERS_POOL_ADDR, yearLock);
-        foundationTimelock = new TokenTimelock(token, FOUNDATION_POOL_ADDR, yearLock);
+        foundationTimelock = new TokenTimelock(token, FOUNDATION_POOL_ADDR_VEST, yearLock);
 
         // Genesis allocation of tokens
         token.safeTransfer(FOUNDATION_POOL_ADDR, FOUNDATION_POOL_TOKENS);
@@ -153,6 +153,30 @@ contract SelfKeyCrowdsale is Ownable, CrowdsaleConfig {
      */
     function removeVerifier (address _address) public onlyOwner {
         isVerifier[_address] = false;
+    }
+
+    /**
+     * @dev Sets a new start date as long as token hasn't started yet
+     * @param _startTime - unix timestamp of the new start time
+     */
+    function setStartTime (uint64 _startTime) public onlyOwner {
+        require(now < startTime);
+        require(_startTime > now);
+        require(_startTime < endTime);
+
+        startTime = _startTime;
+    }
+
+    /**
+     * @dev Sets a new end date as long as end date hasn't been reached
+     * @param _endTime - unix timestamp of the new end time
+     */
+    function setEndTime (uint64 _endTime) public onlyOwner {
+        require(now < endTime);
+        require(_endTime > now);
+        require(_endTime > startTime);
+
+        endTime = _endTime;
     }
 
     /**

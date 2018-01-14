@@ -162,4 +162,15 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     await assertThrows(presaleCrowdsale.releaseLockFounders2())
     await assertThrows(presaleCrowdsale.releaseLockFoundation())
   })
+
+  it('can change the start date if sale has not started', async () => {
+    const additionalTime = 9
+    const beforeStart = await presaleCrowdsale.startTime.call()
+    await presaleCrowdsale.setStartTime(Number(beforeStart) + additionalTime)
+    const laterStart = await presaleCrowdsale.startTime.call()
+    assert.equal(Number(laterStart), Number(beforeStart) + additionalTime)
+
+    await assertThrows(presaleCrowdsale.setStartTime(now - 999))
+    await assertThrows(presaleCrowdsale.setStartTime(end + 1))
+  })
 })
