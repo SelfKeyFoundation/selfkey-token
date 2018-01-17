@@ -407,7 +407,6 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('should allow the release of locked tokens for founders and foundation', async () => {
       const sixMonths = 15552000
       const foundersPool = await crowdsaleContract.FOUNDERS_POOL_ADDR.call()
-      const foundationPool = await crowdsaleContract.FOUNDATION_POOL_ADDR.call()
       const foundersExpected1 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_1.call()
       const foundersExpected2 = await crowdsaleContract.FOUNDERS_TOKENS_VESTED_2.call()
       const vestedExpected = await crowdsaleContract.FOUNDATION_POOL_TOKENS_VESTED.call()
