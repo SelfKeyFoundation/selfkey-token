@@ -56,6 +56,16 @@ contract SelfKeyAirdrop is Ownable {
     }
 
     /**
+     * @dev Changes default airdrop amount
+     * @param amount - new amount to set as airdrop amount
+     */
+    function setAirdropAmount (uint256 amount) public onlyOwner {
+        require(amount > 0);
+
+        airdropAmount = amount;
+    }
+
+    /**
      * @dev Withdraws a certain amount of tokens to the contract owner
      * @param amount - amount of tokens for withdrawal
      */

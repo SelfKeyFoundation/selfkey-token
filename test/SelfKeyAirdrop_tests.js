@@ -123,4 +123,15 @@ contract('Airdrop contract', (accounts) => {
     const withdrawAmount = 100
     await assertThrows(airdropContract.withdrawTokens(withdrawAmount, { from: notOwner }))
   })
+
+  it('allows setting a token amount by the owner', async () => {
+    const newAmount = 1000
+    await airdropContract.setAirdropAmount(newAmount)
+    const airdropAmount = await airdropContract.airdropAmount.call()
+    assert.equal(Number(airdropAmount), newAmount)
+  })
+
+  it('does not allow setting token amount by a non-owner', async () => {
+    await assertThrows(airdropContract.setAirdropAmount(900, { from: notOwner }))
+  })
 })
