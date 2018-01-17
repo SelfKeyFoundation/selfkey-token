@@ -3,7 +3,6 @@ const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
 const SelfKeyAirdrop = artifacts.require('./SelfKeyAirdrop.sol')
 
 const assertThrows = require('./utils/assertThrows')
-const { goal } = require('./utils/common')
 
 contract('Airdrop contract', (accounts) => {
   const YEAR_IN_SECONDS = 31622400
@@ -46,8 +45,6 @@ contract('Airdrop contract', (accounts) => {
 
     // deploy airdrop contract
     airdropContract = await SelfKeyAirdrop.new(crowdsaleContract.address, tokenContract.address)
-    //console.log("crowdsale address = " + crowdsaleContract.address)
-    //console.log("airdrop address = " + airdropContract.address)
     assert.isNotNull(airdropContract)
 
     // send tokens to the airdrop Contract
