@@ -89,12 +89,16 @@ contract('Airdrop contract', (accounts) => {
     const initialBuyerBalance = await tokenContract.balanceOf.call(buyer)
     const initialAirdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
     const airdropAmount = await airdropContract.airdropAmount.call()
+    const airdropCount = await airdropContract.airdropCount.call()
     await airdropContract.airdrop(buyer, { from: airdropper })
     const laterBuyerBalance = await tokenContract.balanceOf.call(buyer)
     const laterAirdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
+    const airdropCount2 = await airdropContract.airdropCount.call()
+
 
     assert.equal(Number(laterBuyerBalance), Number(initialBuyerBalance) + Number(airdropAmount))
     assert.equal(Number(laterAirdropBalance), Number(initialAirdropBalance) - Number(airdropAmount))
+    assert.equal(Number(airdropCount2), Number(airdropCount) + 1)
   })
 
   it('does not allow airdropping more than once to the same address', async () => {
