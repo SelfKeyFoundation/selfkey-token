@@ -1,7 +1,8 @@
 {
   "name": "selfkey-token",
   "version": "1.1.0",
-  "description": "The SelfKey Token is an ERC20 standard token that is used to fuel the SelfKey KYC dapps",
+  "description":
+    "The SelfKey Token is an ERC20 standard token that is used to fuel the SelfKey KYC dapps",
   "main": "truffle.js",
   "directories": {
     "test": "test",
@@ -20,18 +21,33 @@
   },
   "devDependencies": {
     "eslint": "^4.17.0",
-    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.8.0",
+    "eslint-config-standard": "^11.0.0-beta.0",
     "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-mocha": "^4.11.0",
+    "eslint-plugin-node": "^6.0.0",
+    "eslint-plugin-prettier": "^2.3.1",
+    "eslint-plugin-promise": "^3.6.0",
+    "eslint-plugin-standard": "^3.0.1",
     "faker": "^4.1.0",
-    "solhint": "^1.1.10",
+    "husky": "^0.14.3",
+    "lint-staged": "^6.1.0",
+    "prettier": "^1.10.2",
     "solidity-coverage": "^0.4.9"
   },
   "scripts": {
+    "precommit": "lint-staged",
+    "prettier": "prettier --single-quote --no-semi --write '**/*.{js,json}'",
+    "eslint-check":
+      "eslint --print-config .eslintrc.js | eslint-config-prettier-check",
     "test": "truffle test",
     "test:cov": "solidity-coverage",
-    "lint:sol": "solhint ./**/*.sol",
-    "lint:js": "eslint .",
+    "lint:sol": "solhint contracts/**/*.sol",
+    "lint:js": "eslint test/**/*.js",
     "deploy:ropsten": "truffle migrate --network ropsten -f 2"
+  },
+  "lint-staged": {
+    "**/*.{js,json}": ["prettier --singlequote --no-semi --write", "git add"]
   },
   "repository": "https://github.com/SelfKeyFoundation/selfkey-token",
   "keywords": [

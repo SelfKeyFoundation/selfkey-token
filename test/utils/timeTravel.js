@@ -1,4 +1,3 @@
-
 const jsonrpc = '2.0'
 const id = 0
 const base = { jsonrpc, id }
@@ -8,13 +7,14 @@ const base = { jsonrpc, id }
  *  @param method — the method name
  *  @param params — an array of parameters (defaults to [])
  */
-const send = (method, params = []) => web3.currentProvider.send({ ...base, method, params })
+const send = (method, params = []) =>
+  web3.currentProvider.send({ ...base, method, params })
 
 /**
  *  Tell the blockchain to jum ahead in time by a nominated number of seconds.
  *  @param seconds — The number of seconds to jump ahead
  */
-const timeTravel = async (seconds) => {
+const timeTravel = async seconds => {
   await send('evm_increaseTime', [seconds])
   await send('evm_mine')
 }
