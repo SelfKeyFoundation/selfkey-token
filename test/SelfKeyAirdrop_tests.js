@@ -4,14 +4,21 @@ const SelfKeyAirdrop = artifacts.require('./SelfKeyAirdrop.sol')
 
 const assertThrows = require('./utils/assertThrows')
 
-contract('Airdrop contract', (accounts) => {
+contract('Airdrop contract', accounts => {
   const YEAR_IN_SECONDS = 31622400
-  const now = (new Date()).getTime() / 1000
+  const now = new Date().getTime() / 1000
   const start = now
   const end = start + YEAR_IN_SECONDS
   const goal = 1
 
-  const [buyer, buyer2, notVerified, airdropper, airdropper2, notOwner] = accounts.slice(3)
+  const [
+    buyer,
+    buyer2,
+    notVerified,
+    airdropper,
+    airdropper2,
+    notOwner
+  ] = accounts.slice(3)
 
   let crowdsaleContract
   let airdropContract
@@ -44,14 +51,21 @@ contract('Airdrop contract', (accounts) => {
     assert.isTrue(finalized)
 
     // deploy airdrop contract
-    airdropContract = await SelfKeyAirdrop.new(crowdsaleContract.address, tokenContract.address)
+    airdropContract = await SelfKeyAirdrop.new(
+      crowdsaleContract.address,
+      tokenContract.address
+    )
     assert.isNotNull(airdropContract)
 
     // send tokens to the airdrop Contract
     sendAmount = web3.toWei(1000, 'ether')
-    await tokenContract.transfer(airdropContract.address, sendAmount, { from: buyer2 })
-    const airdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
-    assert.equal(Number(airdropBalance), sendAmount)
+    await tokenContract.transfer(airdropContract.address, sendAmount, {
+      from: buyer2
+    })
+    const airdropBalance = await tokenContract.balanceOf.call(
+      airdropContract.address
+    )
+    assert.equal(airdropBalance.toNumber(), sendAmount)
   })
 
   it('allows adding new airdropper', async () => {
@@ -72,7 +86,9 @@ contract('Airdrop contract', (accounts) => {
 
   it('does not allow adding nor removing airdroppers by a non-owner', async () => {
     await assertThrows(airdropContract.addAirdropper(buyer, { from: notOwner }))
-    await assertThrows(airdropContract.removeAirdropper(airdropper2, { from: notOwner }))
+    await assertThrows(
+      airdropContract.removeAirdropper(airdropper2, { from: notOwner })
+    )
   })
 
   it('allows removing an airdropper', async () => {
@@ -87,18 +103,27 @@ contract('Airdrop contract', (accounts) => {
 
   it('allows airdropping to a verified address', async () => {
     const initialBuyerBalance = await tokenContract.balanceOf.call(buyer)
-    const initialAirdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
+    const initialAirdropBalance = await tokenContract.balanceOf.call(
+      airdropContract.address
+    )
     const airdropAmount = await airdropContract.airdropAmount.call()
     const airdropCount = await airdropContract.airdropCount.call()
     await airdropContract.airdrop(buyer, { from: airdropper })
     const laterBuyerBalance = await tokenContract.balanceOf.call(buyer)
-    const laterAirdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
+    const laterAirdropBalance = await tokenContract.balanceOf.call(
+      airdropContract.address
+    )
     const airdropCount2 = await airdropContract.airdropCount.call()
 
-
-    assert.equal(Number(laterBuyerBalance), Number(initialBuyerBalance) + Number(airdropAmount))
-    assert.equal(Number(laterAirdropBalance), Number(initialAirdropBalance) - Number(airdropAmount))
-    assert.equal(Number(airdropCount2), Number(airdropCount) + 1)
+    assert.equal(
+      laterBuyerBalance.toNumber(),
+      initialBuyerBalance.toNumber() + airdropAmount.toNumber()
+    )
+    assert.equal(
+      laterAirdropBalance.toNumber(),
+      initialAirdropBalance.toNumber() - airdropAmount.toNumber()
+    )
+    assert.equal(airdropCount2.toNumber(), airdropCount.toNumber() + 1)
   })
 
   it('does not allow airdropping more than once to the same address', async () => {
@@ -107,9 +132,11 @@ contract('Airdrop contract', (accounts) => {
     await assertThrows(airdropContract.airdrop(buyer, { from: airdropper }))
   })
 
-  it('does not allow airdropping to a non-verified address', async () => {
-    await assertThrows(airdropContract.airdrop(notVerified, { from: airdropper }))
-  })
+  it('does not allow airdropping to a non-verified address', async () =>
+    assertThrows(airdropContract.airdrop(notVerified, { from: airdropper })))
+
+  it('does not allow airdropping by a non-whitelisted address', async () =>
+    assertThrows(airdropContract.airdrop(buyer2, { from: buyer })))
 
   it('allows withdrawal of tokens by the owner', async () => {
     const withdrawAmount = 100
@@ -117,22 +144,28 @@ contract('Airdrop contract', (accounts) => {
     await airdropContract.withdrawTokens(withdrawAmount)
     const laterOwnerBalance = await tokenContract.balanceOf(accounts[0])
 
-    assert.equal(Number(laterOwnerBalance), Number(initialOwnerBalance) + withdrawAmount)
+    assert.equal(
+      laterOwnerBalance.toNumber(),
+      initialOwnerBalance.toNumber() + withdrawAmount
+    )
   })
 
-  it('does not allow withdrawal of tokens by a non-owner', async () => {
-    const withdrawAmount = 100
-    await assertThrows(airdropContract.withdrawTokens(withdrawAmount, { from: notOwner }))
-  })
+  it('does not allow withdrawal of tokens by a non-owner', async () =>
+    assertThrows(airdropContract.withdrawTokens(100, { from: notOwner })))
+
+  it('does not allow setting airdrop amount of 0', async () =>
+    assertThrows(airdropContract.setAirdropAmount(0)))
 
   it('allows setting a token amount by the owner', async () => {
     const newAmount = 1000
     await airdropContract.setAirdropAmount(newAmount)
     const airdropAmount = await airdropContract.airdropAmount.call()
-    assert.equal(Number(airdropAmount), newAmount)
+    assert.equal(airdropAmount.toNumber(), newAmount)
   })
 
   it('does not allow setting token amount by a non-owner', async () => {
-    await assertThrows(airdropContract.setAirdropAmount(900, { from: notOwner }))
+    await assertThrows(
+      airdropContract.setAirdropAmount(900, { from: notOwner })
+    )
   })
 })
