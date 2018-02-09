@@ -1,12 +1,8 @@
 const SelfKeyAirdrop = artifacts.require('./SelfKeyAirdrop.sol')
 
-module.exports = (deployer) => {
+module.exports = deployer => {
   const crowdsaleAddress = ''
   const tokenAddress = ''
 
-  deployer.deploy(
-    SelfKeyAirdrop,
-    crowdsaleAddress,
-    tokenAddress
-  )
+  deployer.deploy(SelfKeyAirdrop, crowdsaleAddress, tokenAddress)
 }

@@ -1,21 +1,32 @@
 const SelfKeyCrowdsale = artifacts.require('./SelfKeyCrowdsale.sol')
 const SelfKeyToken = artifacts.require('./SelfKeyToken.sol')
-const TokenTimelock = artifacts.require('zeppelin-solidity/contracts/token/TokenTimelock.sol')
-const RefundVault = artifacts.require('zeppelin-solidity/contracts/crowdsale/RefundVault.sol')
+const TokenTimelock = artifacts.require(
+  'zeppelin-solidity/contracts/token/TokenTimelock.sol'
+)
+const RefundVault = artifacts.require(
+  'zeppelin-solidity/contracts/crowdsale/RefundVault.sol'
+)
 
 const assertThrows = require('./utils/assertThrows')
 const timeTravel = require('./utils/timeTravel')
 const { goal } = require('./utils/common')
 
-
-contract('SelfKeyCrowdsale', (accounts) => {
-  const now = (new Date()).getTime() / 1000
+contract('SelfKeyCrowdsale', accounts => {
+  const now = new Date().getTime() / 1000
   const start = now
-  const end = start + 1296000   // 15 days after start
+  const end = start + 1296000 // 15 days after start
 
   const SIGNIFICANT_AMOUNT = 2048
 
-  const [buyer, buyer2, buyer3, buyer4, buyer5, receiver, middleman] = accounts.slice(1)
+  const [
+    buyer,
+    buyer2,
+    buyer3,
+    buyer4,
+    buyer5,
+    receiver,
+    middleman
+  ] = accounts.slice(1)
 
   let crowdsaleContract
   let tokenContract
@@ -24,16 +35,12 @@ contract('SelfKeyCrowdsale', (accounts) => {
   let foundationTimelock
   let vaultContract
 
-  context('Crowdsale whose goal hasn\'t been reached', () => {
+  context("Crowdsale whose goal hasn't been reached", () => {
     const hugeGoal = 950000000000000000000000000
     const sendAmount = web3.toWei(3, 'ether')
 
     before(async () => {
-      crowdsaleContract = await SelfKeyCrowdsale.new(
-        start,
-        end,
-        hugeGoal
-      )
+      crowdsaleContract = await SelfKeyCrowdsale.new(start, end, hugeGoal)
       const token = await crowdsaleContract.token.call()
       tokenContract = await SelfKeyToken.at(token)
       const foundersTimelock1Address = await crowdsaleContract.foundersTimelock1.call()
@@ -61,7 +68,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sender = buyer
 
       await crowdsaleContract.verifyKYC(sender)
-      await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      await crowdsaleContract.sendTransaction({
+        from: sender,
+        value: sendAmount
+      })
 
       // check no refund can be claimed before finalization
       await assertThrows(crowdsaleContract.claimRefund(sender))
@@ -85,11 +95,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
   context('Regular Crowdsale', () => {
     before(async () => {
-      crowdsaleContract = await SelfKeyCrowdsale.new(
-        start,
-        end,
-        goal
-      )
+      crowdsaleContract = await SelfKeyCrowdsale.new(start, end, goal)
       const token = await crowdsaleContract.token.call()
       tokenContract = await SelfKeyToken.at(token)
 
@@ -141,26 +147,56 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const expectedFoundationVested = await crowdsaleContract.FOUNDATION_POOL_TOKENS_VESTED.call()
 
       // Get actual balances
-      const foundationBalance = await tokenContract.balanceOf.call(foundationPool)
+      const foundationBalance = await tokenContract.balanceOf.call(
+        foundationPool
+      )
       const communityBalance = await tokenContract.balanceOf.call(communityPool)
-      const legal1Balance = await tokenContract.balanceOf.call(legalExpenses1Address)
-      const legal2Balance = await tokenContract.balanceOf.call(legalExpenses2Address)
+      const legal1Balance = await tokenContract.balanceOf.call(
+        legalExpenses1Address
+      )
+      const legal2Balance = await tokenContract.balanceOf.call(
+        legalExpenses2Address
+      )
       const foundersBalance = await tokenContract.balanceOf.call(foundersPool)
 
-      const foundersVestedBalance1 = await tokenContract.balanceOf.call(foundersTimelock1Address)
-      const foundersVestedBalance2 = await tokenContract.balanceOf.call(foundersTimelock2Address)
-      const foundationVestedBalance = await tokenContract.balanceOf.call(foundationTimelockAddress)
+      const foundersVestedBalance1 = await tokenContract.balanceOf.call(
+        foundersTimelock1Address
+      )
+      const foundersVestedBalance2 = await tokenContract.balanceOf.call(
+        foundersTimelock2Address
+      )
+      const foundationVestedBalance = await tokenContract.balanceOf.call(
+        foundationTimelockAddress
+      )
 
       // Check allocation was done as expected
-      assert.equal(foundationBalance.toNumber(), expectedFoundationTokens.toNumber())
-      assert.equal(communityBalance.toNumber(), expectedCommunityTokens.toNumber())
+      assert.equal(
+        foundationBalance.toNumber(),
+        expectedFoundationTokens.toNumber()
+      )
+      assert.equal(
+        communityBalance.toNumber(),
+        expectedCommunityTokens.toNumber()
+      )
       assert.equal(legal1Balance.toNumber(), expectedLegal1Tokens.toNumber())
       assert.equal(legal2Balance.toNumber(), expectedLegal2Tokens.toNumber())
-      assert.equal(foundersBalance.toNumber(), expectedFoundersTokens.toNumber())
+      assert.equal(
+        foundersBalance.toNumber(),
+        expectedFoundersTokens.toNumber()
+      )
 
-      assert.equal(foundersVestedBalance1.toNumber(), expectedFoundersVested1.toNumber())
-      assert.equal(foundersVestedBalance2.toNumber(), expectedFoundersVested2.toNumber())
-      assert.equal(foundationVestedBalance.toNumber(), expectedFoundationVested.toNumber())
+      assert.equal(
+        foundersVestedBalance1.toNumber(),
+        expectedFoundersVested1.toNumber()
+      )
+      assert.equal(
+        foundersVestedBalance2.toNumber(),
+        expectedFoundersVested2.toNumber()
+      )
+      assert.equal(
+        foundationVestedBalance.toNumber(),
+        expectedFoundationVested.toNumber()
+      )
     })
 
     it('cannot change start time if sale already started', async () => {
@@ -189,7 +225,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
       // attempt sending ETH from an unverified address
       const verified = await crowdsaleContract.kycVerified.call(sender)
       assert.isFalse(verified)
-      await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+      await assertThrows(
+        crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      )
     })
 
     it('allows token purchases for verified participants', async () => {
@@ -205,7 +243,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // send ETH to the contract to purchase tokens
       const sendAmount = web3.toWei(2, 'ether')
-      await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      await crowdsaleContract.sendTransaction({
+        from: sender,
+        value: sendAmount
+      })
       const buyerBalance = await tokenContract.balanceOf.call(sender)
 
       // check allocated amount corresponds to the set exchange rate according to ETH price
@@ -213,7 +254,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // Check wei added to the vault is correct
       const vaultNewBalance = await vaultContract.deposited.call(sender)
-      assert.equal(vaultNewBalance.toNumber() - vaultInitialBalance.toNumber(), sendAmount)
+      assert.equal(
+        vaultNewBalance.toNumber() - vaultInitialBalance.toNumber(),
+        sendAmount
+      )
     })
 
     it('does not allow contributions below minimum cap per purchaser', async () => {
@@ -230,7 +274,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isTrue(verified)
 
       // check below cap transaction fails
-      await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+      await assertThrows(
+        crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      )
     })
 
     it('does allow contributions above minimum purchaser cap', async () => {
@@ -242,7 +288,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sendAmount = minWei + SIGNIFICANT_AMOUNT
       const balance1 = await tokenContract.balanceOf(sender)
 
-      await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      await crowdsaleContract.sendTransaction({
+        from: sender,
+        value: sendAmount
+      })
       const balance2 = await tokenContract.balanceOf(sender)
       assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
@@ -255,13 +304,15 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const maxWei = maxTokenCap.toNumber() / rate.toNumber()
       const sendAmount = maxWei
 
-      await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+      await assertThrows(
+        crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      )
     })
 
     it('allows contributions above $3000 after day 1', async () => {
       const sender = buyer4
 
-      timeTravel(86400)   // fast forward 1 day
+      timeTravel(86400) // fast forward 1 day
 
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
@@ -269,7 +320,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sendAmount = maxWei + SIGNIFICANT_AMOUNT
       const balance1 = await tokenContract.balanceOf(sender)
 
-      await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      await crowdsaleContract.sendTransaction({
+        from: sender,
+        value: sendAmount
+      })
       const balance2 = await tokenContract.balanceOf(sender)
       assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
@@ -288,7 +342,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
       assert.isTrue(verified)
 
       // check transaction fails because purchase is above cap
-      await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+      await assertThrows(
+        crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      )
 
       // check participant can still purchase slightly above the max cap
       sendAmount = maxWei - SIGNIFICANT_AMOUNT
@@ -326,7 +382,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // check transaction fails
       const sendAmount = web3.toWei(1, 'ether')
-      await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
+      await assertThrows(
+        crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
+      )
     })
 
     it('cannot change end time if sale has already ended', async () => {
@@ -338,11 +396,13 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const sendAmount = 5
 
       // check participant has enough token funds
-      const balance =  await tokenContract.balanceOf.call(sender)
+      const balance = await tokenContract.balanceOf.call(sender)
       assert.isAtLeast(balance.toNumber(), sendAmount)
 
       // Tokens are not yet transferrable because sale has not been finalized
-      await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: sender }))
+      await assertThrows(
+        tokenContract.transfer(receiver, sendAmount, { from: sender })
+      )
     })
 
     it('can finalize token sale successfully', async () => {
@@ -354,14 +414,19 @@ contract('SelfKeyCrowdsale', (accounts) => {
       await crowdsaleContract.finalize()
       const walletBalance2 = web3.eth.getBalance(crowdsaleWallet)
       const vaultBalance2 = web3.eth.getBalance(vaultContract.address)
-      const contractTokenBalance = await tokenContract.balanceOf.call(crowdsaleContract.address)
+      const contractTokenBalance = await tokenContract.balanceOf.call(
+        crowdsaleContract.address
+      )
 
       // check unsold tokens were effectively burned
       assert.equal(contractTokenBalance, 0)
 
       // check all ETH was effectively transferred to the crowdsale wallet
       assert.equal(vaultBalance2, 0)
-      assert.equal(walletBalance2.toNumber(), walletBalance1.toNumber() + vaultBalance.toNumber())
+      assert.equal(
+        walletBalance2.toNumber(),
+        walletBalance1.toNumber() + vaultBalance.toNumber()
+      )
     })
 
     it('does not allow finalize to be re-invoked', async () => {
@@ -370,7 +435,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
     it('enables token transfers after finalization', async () => {
       const sender = buyer3
-      const sendAmount = 9        // KEY
+      const sendAmount = 9 // KEY
 
       // check sender has enough tokens
       const senderBalance = await tokenContract.balanceOf(sender)
@@ -380,7 +445,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       let receiverBalance1 = await tokenContract.balanceOf.call(receiver)
       await tokenContract.transfer(receiver, sendAmount, { from: sender })
       let receiverBalance2 = await tokenContract.balanceOf.call(receiver)
-      assert.equal(receiverBalance2.toNumber() - receiverBalance1.toNumber(), sendAmount)
+      assert.equal(
+        receiverBalance2.toNumber() - receiverBalance1.toNumber(),
+        sendAmount
+      )
 
       // approve a middleman to make transfer on behalf of sender
       await tokenContract.approve(middleman, sendAmount, { from: sender })
@@ -388,15 +456,16 @@ contract('SelfKeyCrowdsale', (accounts) => {
       receiverBalance1 = await tokenContract.balanceOf.call(receiver)
 
       // test unsuccessful transferFrom invocation (above the approved amount)
-      await assertThrows(tokenContract.transferFrom(
-        sender,
-        receiver,
-        sendAmount + 1,
-        { from: middleman }
-      ))  // function-paren-newline
+      await assertThrows(
+        tokenContract.transferFrom(sender, receiver, sendAmount + 1, {
+          from: middleman
+        })
+      ) // function-paren-newline
 
       // test successful transferFrom invocation
-      await tokenContract.transferFrom(sender, receiver, sendAmount, { from: middleman })
+      await tokenContract.transferFrom(sender, receiver, sendAmount, {
+        from: middleman
+      })
       const senderBalance2 = await tokenContract.balanceOf.call(sender)
       receiverBalance2 = await tokenContract.balanceOf.call(receiver)
 
@@ -418,7 +487,10 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundersBalance1 = await tokenContract.balanceOf(foundersPool)
       await crowdsaleContract.releaseLockFounders1()
       const foundersBalance2 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(foundersBalance2.toNumber(), foundersBalance1.toNumber() + foundersExpected1.toNumber())
+      assert.equal(
+        foundersBalance2.toNumber(),
+        foundersBalance1.toNumber() + foundersExpected1.toNumber()
+      )
 
       // pre-commitment half-vested locks can be tested here as well
 
@@ -428,14 +500,18 @@ contract('SelfKeyCrowdsale', (accounts) => {
       // test second timelock release
       await crowdsaleContract.releaseLockFounders2()
       const foundersBalance3 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(foundersBalance3.toNumber(), foundersBalance2.toNumber() + foundersExpected2.toNumber())
+      assert.equal(
+        foundersBalance3.toNumber(),
+        foundersBalance2.toNumber() + foundersExpected2.toNumber()
+      )
 
       // check for second foundation vested release
       const vestedAddress = await crowdsaleContract.FOUNDATION_POOL_ADDR_VEST.call()
       const vestedBalance1 = await tokenContract.balanceOf(vestedAddress)
       await crowdsaleContract.releaseLockFoundation()
       const vestedBalance2 = await tokenContract.balanceOf(vestedAddress)
-      const newExpectedBalance = vestedBalance1.toNumber() + vestedExpected.toNumber()
+      const newExpectedBalance =
+        vestedBalance1.toNumber() + vestedExpected.toNumber()
       assert.equal(vestedBalance2.toNumber(), newExpectedBalance)
     })
   })
