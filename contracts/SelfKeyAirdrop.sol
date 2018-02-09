@@ -17,7 +17,8 @@ contract SelfKeyAirdrop is Ownable {
     mapping(address => bool) public airdropped;
     mapping(address => bool) public isAirdropper;
 
-    uint256 public airdropAmount = 10;
+    uint256 public airdropAmount = 10000000000000000000;
+    uint256 public airdropCount = 0;
 
     SelfKeyCrowdsale public crowdsale;
     SelfKeyToken public token;
@@ -82,6 +83,7 @@ contract SelfKeyAirdrop is Ownable {
         require(crowdsale.kycVerified(_to));
         require(!airdropped[_to]);
 
+        airdropCount = airdropCount + 1;
         airdropped[_to] = true;
         token.safeTransfer(_to, airdropAmount);
     }
