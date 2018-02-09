@@ -92,7 +92,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const balance2 = await presaleToken.balanceOf.call(buyer3)
 
     // check half tokens are immediately transferred to participant's wallet
-    assert.equal(Number(balance2), allocation / 2)
+    assert.equal(balance2.toNumber(), allocation / 2)
 
     // check the other half is sent to the time-lock
     const timelockAddress = await presaleCrowdsale.vestedTokens.call(buyer3)
@@ -110,7 +110,7 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const timelockAddress = await presaleCrowdsale.vestedTokens.call(sender)
     assert.notEqual(timelockAddress, 0x0)
     const vestedBalance1 = await presaleToken.balanceOf.call(timelockAddress)
-    assert.isAbove(Number(vestedBalance1), 0)
+    assert.isAbove(vestedBalance1.toNumber(), 0)
 
     // test vested pre-commitment
     const balance1 = await presaleToken.balanceOf.call(sender)
@@ -118,12 +118,11 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
     const balance2 = await presaleToken.balanceOf.call(sender)
 
     // check half tokens are immediately transferred to participant's wallet
-    assert.equal(Number(balance2) - Number(balance1), allocation / 2)
+    assert.equal(balance2.toNumber() - balance1.toNumber(), allocation / 2)
 
     // check the other half is sent to the time-lock
     const vestedBalance2 = await presaleToken.balanceOf.call(timelockAddress)
-    assert.isAbove(Number(vestedBalance2), Number(vestedBalance1))
-    // assert.equal(Number(vestedBalance2) - Number(vestedBalance1), allocation - (allocation / 2))
+    assert.isAbove(vestedBalance2.toNumber(), vestedBalance1.toNumber())
 
     // test failure on premature release of tokens
     await assertThrows(presaleCrowdsale.releaseLock(sender))
@@ -166,9 +165,9 @@ contract('SelfKeyCrowdsale (Pre-sale)', (accounts) => {
   it('can change the start date if sale has not started', async () => {
     const additionalTime = 9
     const beforeStart = await presaleCrowdsale.startTime.call()
-    await presaleCrowdsale.setStartTime(Number(beforeStart) + additionalTime)
+    await presaleCrowdsale.setStartTime(beforeStart.toNumber() + additionalTime)
     const laterStart = await presaleCrowdsale.startTime.call()
-    assert.equal(Number(laterStart), Number(beforeStart) + additionalTime)
+    assert.equal(laterStart.toNumber(), beforeStart.toNumber() + additionalTime)
 
     await assertThrows(presaleCrowdsale.setStartTime(now - 999))
     await assertThrows(presaleCrowdsale.setStartTime(end + 1))

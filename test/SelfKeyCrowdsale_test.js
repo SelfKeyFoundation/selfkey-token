@@ -79,7 +79,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const balance2 = web3.eth.getBalance(sender)
 
       // check buyer balance increases
-      assert.isAbove(Number(balance2), Number(balance1))
+      assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
   })
 
@@ -152,15 +152,15 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundationVestedBalance = await tokenContract.balanceOf.call(foundationTimelockAddress)
 
       // Check allocation was done as expected
-      assert.equal(Number(foundationBalance), Number(expectedFoundationTokens))
-      assert.equal(Number(communityBalance), Number(expectedCommunityTokens))
-      assert.equal(Number(legal1Balance), Number(expectedLegal1Tokens))
-      assert.equal(Number(legal2Balance), Number(expectedLegal2Tokens))
-      assert.equal(Number(foundersBalance), Number(expectedFoundersTokens))
+      assert.equal(foundationBalance.toNumber(), expectedFoundationTokens.toNumber())
+      assert.equal(communityBalance.toNumber(), expectedCommunityTokens.toNumber())
+      assert.equal(legal1Balance.toNumber(), expectedLegal1Tokens.toNumber())
+      assert.equal(legal2Balance.toNumber(), expectedLegal2Tokens.toNumber())
+      assert.equal(foundersBalance.toNumber(), expectedFoundersTokens.toNumber())
 
-      assert.equal(Number(foundersVestedBalance1), Number(expectedFoundersVested1))
-      assert.equal(Number(foundersVestedBalance2), Number(expectedFoundersVested2))
-      assert.equal(Number(foundationVestedBalance), Number(expectedFoundationVested))
+      assert.equal(foundersVestedBalance1.toNumber(), expectedFoundersVested1.toNumber())
+      assert.equal(foundersVestedBalance2.toNumber(), expectedFoundersVested2.toNumber())
+      assert.equal(foundationVestedBalance.toNumber(), expectedFoundationVested.toNumber())
     })
 
     it('cannot change start time if sale already started', async () => {
@@ -209,11 +209,11 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const buyerBalance = await tokenContract.balanceOf.call(sender)
 
       // check allocated amount corresponds to the set exchange rate according to ETH price
-      assert.equal(Number(buyerBalance), sendAmount * rate)
+      assert.equal(buyerBalance.toNumber(), sendAmount * rate)
 
       // Check wei added to the vault is correct
       const vaultNewBalance = await vaultContract.deposited.call(sender)
-      assert.equal(Number(vaultNewBalance) - Number(vaultInitialBalance), sendAmount)
+      assert.equal(vaultNewBalance.toNumber() - vaultInitialBalance.toNumber(), sendAmount)
     })
 
     it('does not allow contributions below minimum cap per purchaser', async () => {
@@ -221,7 +221,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       const minTokenCap = await crowdsaleContract.PURCHASER_MIN_TOKEN_CAP.call()
       const rate = await crowdsaleContract.rate.call()
-      const minWei = Number(minTokenCap) / Number(rate)
+      const minWei = minTokenCap.toNumber() / rate.toNumber()
       const sendAmount = minWei - SIGNIFICANT_AMOUNT
 
       // verify new purchaser
@@ -238,13 +238,13 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       const minTokenCap = await crowdsaleContract.PURCHASER_MIN_TOKEN_CAP.call()
       const rate = await crowdsaleContract.rate.call()
-      const minWei = Number(minTokenCap) / Number(rate)
+      const minWei = minTokenCap.toNumber() / rate.toNumber()
       const sendAmount = minWei + SIGNIFICANT_AMOUNT
       const balance1 = await tokenContract.balanceOf(sender)
 
       await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
       const balance2 = await tokenContract.balanceOf(sender)
-      assert.isAbove(Number(balance2), Number(balance1))
+      assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
 
     it('does not allow contributions above $3000 per purchaser on day 1', async () => {
@@ -252,7 +252,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
-      const maxWei = Number(maxTokenCap) / Number(rate)
+      const maxWei = maxTokenCap.toNumber() / rate.toNumber()
       const sendAmount = maxWei
 
       await assertThrows(crowdsaleContract.sendTransaction({ from: sender, value: sendAmount }))
@@ -265,13 +265,13 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP_DAY1.call()
       const rate = await crowdsaleContract.rate.call()
-      const maxWei = Number(maxTokenCap) / Number(rate)
+      const maxWei = maxTokenCap.toNumber() / rate.toNumber()
       const sendAmount = maxWei + SIGNIFICANT_AMOUNT
       const balance1 = await tokenContract.balanceOf(sender)
 
       await crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
       const balance2 = await tokenContract.balanceOf(sender)
-      assert.isAbove(Number(balance2), Number(balance1))
+      assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
 
     it('does not allow contributions above $18000 after day 1', async () => {
@@ -279,7 +279,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       const maxTokenCap = await crowdsaleContract.PURCHASER_MAX_TOKEN_CAP.call()
       const rate = await crowdsaleContract.rate.call()
-      const maxWei = Number(maxTokenCap) / Number(rate)
+      const maxWei = maxTokenCap.toNumber() / rate.toNumber()
       let sendAmount = maxWei + SIGNIFICANT_AMOUNT
 
       // verify new purchaser
@@ -295,7 +295,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const balance1 = await tokenContract.balanceOf(sender)
       crowdsaleContract.sendTransaction({ from: sender, value: sendAmount })
       const balance2 = await tokenContract.balanceOf(sender)
-      assert.isAbove(Number(balance2), Number(balance1))
+      assert.isAbove(balance2.toNumber(), balance1.toNumber())
     })
 
     it('does not allow updating ETH price if sale has already started', () => {
@@ -305,9 +305,9 @@ contract('SelfKeyCrowdsale', (accounts) => {
     it('can change the end date if sale has not ended', async () => {
       const additionalTime = 999
       const beforeEnd = await crowdsaleContract.endTime.call()
-      await crowdsaleContract.setEndTime(Number(beforeEnd) + additionalTime)
+      await crowdsaleContract.setEndTime(beforeEnd.toNumber() + additionalTime)
       const laterEnd = await crowdsaleContract.endTime.call()
-      assert.equal(Number(laterEnd), Number(beforeEnd) + additionalTime)
+      assert.equal(laterEnd.toNumber(), beforeEnd.toNumber() + additionalTime)
 
       await assertThrows(crowdsaleContract.setEndTime(now - 999))
       await assertThrows(crowdsaleContract.setEndTime(start - 1))
@@ -339,7 +339,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // check participant has enough token funds
       const balance =  await tokenContract.balanceOf.call(sender)
-      assert.isAtLeast(Number(balance), sendAmount)
+      assert.isAtLeast(balance.toNumber(), sendAmount)
 
       // Tokens are not yet transferrable because sale has not been finalized
       await assertThrows(tokenContract.transfer(receiver, sendAmount, { from: sender }))
@@ -361,7 +361,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
 
       // check all ETH was effectively transferred to the crowdsale wallet
       assert.equal(vaultBalance2, 0)
-      assert.equal(Number(walletBalance2), Number(walletBalance1) + Number(vaultBalance))
+      assert.equal(walletBalance2.toNumber(), walletBalance1.toNumber() + vaultBalance.toNumber())
     })
 
     it('does not allow finalize to be re-invoked', async () => {
@@ -380,7 +380,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       let receiverBalance1 = await tokenContract.balanceOf.call(receiver)
       await tokenContract.transfer(receiver, sendAmount, { from: sender })
       let receiverBalance2 = await tokenContract.balanceOf.call(receiver)
-      assert.equal(Number(receiverBalance2) - Number(receiverBalance1), sendAmount)
+      assert.equal(receiverBalance2.toNumber() - receiverBalance1.toNumber(), sendAmount)
 
       // approve a middleman to make transfer on behalf of sender
       await tokenContract.approve(middleman, sendAmount, { from: sender })
@@ -418,7 +418,7 @@ contract('SelfKeyCrowdsale', (accounts) => {
       const foundersBalance1 = await tokenContract.balanceOf(foundersPool)
       await crowdsaleContract.releaseLockFounders1()
       const foundersBalance2 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(Number(foundersBalance2), Number(foundersBalance1) + Number(foundersExpected1))
+      assert.equal(foundersBalance2.toNumber(), foundersBalance1.toNumber() + foundersExpected1.toNumber())
 
       // pre-commitment half-vested locks can be tested here as well
 
@@ -428,15 +428,15 @@ contract('SelfKeyCrowdsale', (accounts) => {
       // test second timelock release
       await crowdsaleContract.releaseLockFounders2()
       const foundersBalance3 = await tokenContract.balanceOf(foundersPool)
-      assert.equal(Number(foundersBalance3), Number(foundersBalance2) + Number(foundersExpected2))
+      assert.equal(foundersBalance3.toNumber(), foundersBalance2.toNumber() + foundersExpected2.toNumber())
 
       // check for second foundation vested release
       const vestedAddress = await crowdsaleContract.FOUNDATION_POOL_ADDR_VEST.call()
       const vestedBalance1 = await tokenContract.balanceOf(vestedAddress)
       await crowdsaleContract.releaseLockFoundation()
       const vestedBalance2 = await tokenContract.balanceOf(vestedAddress)
-      const newExpectedBalance = Number(vestedBalance1) + Number(vestedExpected)
-      assert.equal(Number(vestedBalance2), newExpectedBalance)
+      const newExpectedBalance = vestedBalance1.toNumber() + vestedExpected.toNumber()
+      assert.equal(vestedBalance2.toNumber(), newExpectedBalance)
     })
   })
 })
