@@ -51,7 +51,7 @@ contract('Airdrop contract', (accounts) => {
     sendAmount = web3.toWei(1000, 'ether')
     await tokenContract.transfer(airdropContract.address, sendAmount, { from: buyer2 })
     const airdropBalance = await tokenContract.balanceOf.call(airdropContract.address)
-    assert.equal(Number(airdropBalance), sendAmount)
+    assert.equal(airdropBalance.toNumber(), sendAmount)
   })
 
   it('allows adding new airdropper', async () => {

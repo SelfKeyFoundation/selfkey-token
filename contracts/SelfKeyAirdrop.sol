@@ -1,9 +1,9 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.19;
 
 import './SelfKeyToken.sol';
 import './SelfKeyCrowdsale.sol';
 
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
 
 

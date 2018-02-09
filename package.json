@@ -12,19 +12,19 @@
     "npm": "5.6.0"
   },
   "dependencies": {
-    "bip39": "^2.4.0",
+    "bip39": "^2.5.0",
     "ethereumjs-wallet": "^0.6.0",
-    "web3": "^0.20.2",
+    "web3": "^0.20.4",
     "web3-provider-engine": "^8.6.1",
-    "zeppelin-solidity": "^1.5.0"
+    "zeppelin-solidity": "^1.6.0"
   },
   "devDependencies": {
-    "eslint": "^4.14.0",
+    "eslint": "^4.17.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
     "faker": "^4.1.0",
-    "solhint": "^1.1.8",
-    "solidity-coverage": "^0.4.7"
+    "solhint": "^1.1.10",
+    "solidity-coverage": "^0.4.9"
   },
   "scripts": {
     "test": "truffle test",
