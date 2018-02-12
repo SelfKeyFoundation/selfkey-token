@@ -16,7 +16,7 @@
     "bip39": "^2.5.0",
     "ethereumjs-wallet": "^0.6.0",
     "web3": "^0.20.4",
-    "web3-provider-engine": "^8.6.1",
+    "web3-provider-engine": "^13.6.4",
     "zeppelin-solidity": "^1.6.0"
   },
   "devDependencies": {
