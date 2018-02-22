@@ -1,7 +1,6 @@
 pragma solidity ^0.4.19;
 
 import './SelfKeyToken.sol';
-import './SelfKeyCrowdsale.sol';
 
 import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
@@ -20,7 +19,6 @@ contract SelfKeyAirdrop is Ownable {
     uint256 public airdropAmount = 10000000000000000000;
     uint256 public airdropCount = 0;
 
-    SelfKeyCrowdsale public crowdsale;
     SelfKeyToken public token;
 
     /**
@@ -33,10 +31,9 @@ contract SelfKeyAirdrop is Ownable {
 
     /**
      * @dev SelfKeyAirdrop contract constructor
-     * @param crowdsaleAddress - address of the SelfKey crowdsale contract
+     * @param tokenAddress - address of the SelfKey token contract
      */
-    function SelfKeyAirdrop (address crowdsaleAddress, address tokenAddress) public {
-        crowdsale = SelfKeyCrowdsale(crowdsaleAddress);
+    function SelfKeyAirdrop (address tokenAddress) public {
         token = SelfKeyToken(tokenAddress);
     }
 
@@ -80,7 +77,6 @@ contract SelfKeyAirdrop is Ownable {
      * @param _to - address to whom the airdrop is being done
      */
     function airdrop (address _to) public airdropperOnly {
-        require(crowdsale.kycVerified(_to));
         require(!airdropped[_to]);
 
         airdropCount = airdropCount + 1;
