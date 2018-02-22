@@ -27,7 +27,6 @@ contract('Airdrop contract', accounts => {
   before(async () => {
     // deploy crowdsale contract
     crowdsaleContract = await SelfKeyCrowdsale.new(start, end, goal)
-
     const tokenAddress = await crowdsaleContract.token.call()
     tokenContract = await SelfKeyToken.at(tokenAddress)
 
@@ -51,10 +50,7 @@ contract('Airdrop contract', accounts => {
     assert.isTrue(finalized)
 
     // deploy airdrop contract
-    airdropContract = await SelfKeyAirdrop.new(
-      crowdsaleContract.address,
-      tokenContract.address
-    )
+    airdropContract = await SelfKeyAirdrop.new(tokenContract.address)
     assert.isNotNull(airdropContract)
 
     // send tokens to the airdrop Contract
@@ -101,7 +97,7 @@ contract('Airdrop contract', accounts => {
     assert.isFalse(isAirdropper)
   })
 
-  it('allows airdropping to a verified address', async () => {
+  it('allows airdropping to an address', async () => {
     const initialBuyerBalance = await tokenContract.balanceOf.call(buyer)
     const initialAirdropBalance = await tokenContract.balanceOf.call(
       airdropContract.address
@@ -131,9 +127,6 @@ contract('Airdrop contract', accounts => {
     assert.isTrue(airdropped)
     await assertThrows(airdropContract.airdrop(buyer, { from: airdropper }))
   })
-
-  it('does not allow airdropping to a non-verified address', async () =>
-    assertThrows(airdropContract.airdrop(notVerified, { from: airdropper })))
 
   it('does not allow airdropping by a non-whitelisted address', async () =>
     assertThrows(airdropContract.airdrop(buyer2, { from: buyer })))
