@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.19;
 
-import 'zeppelin-solidity/contracts/token/MintableToken.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/MintableToken.sol';
 import './SelfKeyCrowdsale.sol';
 
 
@@ -43,7 +43,7 @@ contract SelfKeyToken is MintableToken {
      * @param _value — The number of tokens to mint
      */
     function mint(address _to, uint256 _value) public onlyOwner canMint returns (bool) {
-        require(totalSupply.add(_value) <= cap);
+        require(totalSupply_.add(_value) <= cap);
         return super.mint(_to, _value);
     }
 
@@ -87,7 +87,7 @@ contract SelfKeyToken is MintableToken {
 
         address burner = msg.sender;
         balances[burner] = balances[burner].sub(_value);
-        totalSupply = totalSupply.sub(_value);
+        totalSupply_ = totalSupply_.sub(_value);
         Burned(burner, _value);
     }
 }

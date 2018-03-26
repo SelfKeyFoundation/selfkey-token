@@ -13,12 +13,12 @@ An `ERC20` token used to fuel a wide range of KYC related dapps
 
 ## Development
 
-The smart contracts are being implemented in Solidity `0.4.18`.
+The smart contracts are being implemented in Solidity `0.4.19`.
 
 ### Prerequisites
 
 * [NodeJS](htps://nodejs.org), version 9+ (I use [`nvm`](https://github.com/creationix/nvm) to manage Node versions — `brew install nvm`.)
-* [truffle](http://truffleframework.com/), which is a comprehensive framework for Ethereum development. `npm install -g truffle` — this should install Truffle v4.  Check that with `truffle version`.
+* [truffle](http://truffleframework.com/), which is a comprehensive framework for Ethereum development. `npm install -g truffle` — this should install Truffle v4.0.6 or better.  Check that with `truffle version`.
 * [Access to the KYC_Chain Jira](https://kyc-chain.atlassian.net)
 
 #### Optional but very useful
