@@ -3,7 +3,7 @@ dist: trusty
 language: node_js
 
 node_js:
-- 9.3.0
+- 9.5.0
 
 before_install:
 - npm install -g truffle codecov greenkeeper-lockfile@1

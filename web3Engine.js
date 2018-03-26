@@ -9,7 +9,9 @@ const web3Engine = (addresses, providerUrl) => {
   try {
     const engine = new ProviderEngine()
     engine.addProvider(new WalletSubprovider(addresses[0], {}))
-    engine.addProvider(new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl)))
+    engine.addProvider(
+      new Web3Subprovider(new Web3.providers.HttpProvider(providerUrl))
+    )
     engine.start() // Required by the provider engine.
 
     return engine

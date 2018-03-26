@@ -1,15 +1,15 @@
 /* solhint-disable not-rely-on-time */
 
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.19;
 
 import './SelfKeyToken.sol';
 import './CrowdsaleConfig.sol';
 
 import 'zeppelin-solidity/contracts/math/SafeMath.sol';
-import 'zeppelin-solidity/contracts/token/SafeERC20.sol';
 import 'zeppelin-solidity/contracts/ownership/Ownable.sol';
-import 'zeppelin-solidity/contracts/token/TokenTimelock.sol';
 import 'zeppelin-solidity/contracts/crowdsale/RefundVault.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/TokenTimelock.sol';
+import 'zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol';
 
 
 /**
