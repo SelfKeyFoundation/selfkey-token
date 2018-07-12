@@ -439,7 +439,7 @@ contract('SelfKeyCrowdsale', accounts => {
 
       // check sender has enough tokens
       const senderBalance = await tokenContract.balanceOf(sender)
-      assert.isAtLeast(senderBalance, sendAmount)
+      assert.isAtLeast(senderBalance.toNumber(), sendAmount)
 
       // test transfer method
       let receiverBalance1 = await tokenContract.balanceOf.call(receiver)
